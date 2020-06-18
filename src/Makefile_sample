@@ -15,12 +15,16 @@ CC = nvcc
 FLAGS = -O3 -arch=sm_70 -rdc=true
 LIBS = -lm
 
-all: dmsim_omp
-
+all: dmsim_omp dmsim_mpi dmsim_sin
 
 dmsim_omp: dmsim_omp.cu gate.cuh configuration.h circuit.cuh util.cuh
 	$(CC) $(FLAGS) $(LIBS) -Xcompiler -fopenmp dmsim_omp.cu -o $@
 
+dmsim_mpi: dmsim_mpi.cu gate.cuh configuration.h circuit.cuh util.cuh
+	$(CC) $(FLAGS) $(LIBS) -ccbin mpicc dmsim_mpi.cu -o $@
+
+dmsim_sin: dmsim_sin.cu gate.cuh configuration.h circuit.cuh util.cuh
+	$(CC) $(FLAGS) $(LIBS) dmsim_sin.cu -o $@
 
 clean:
-	rm -rf *.o dmsim_omp
+	rm -rf *.o dmsim_omp dmsim_mpi dmsim_sin
