@@ -95,7 +95,7 @@ DM-Sim is bounded by GPU memory access bandwidth, and possibly by interconnect b
 |  1M  |    5645.5s  |     7.21ms    |   5645.5s  |  5.65ms   |
 
 #### Performance on ORNL Summit supercomputer, the numbers on the bars indicat the number of GPUs utilized.
-<img src="img/summit.png" width="200">
+<img src="img/summit.png" width="600">
 
 ## Compile
 Update your NVCC path, GPU architecture (e.g., SM_70 for Volta). Then the following for compilation: 
