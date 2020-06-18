@@ -83,6 +83,8 @@ This project is licensed under the BSD License, see [LICENSE](LICENSE) file for 
 
 ## Acknowledgments
 
+**PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160**
+
 We thank the anoymous reviewers for their feedbacks and suggestions on our paper. This work was supported by PNNL's *Quantum Algorithms, Software, and Architectures* (QUASAR) LDRD Initiative. The Pacific Northwest National Laboratory (PNNL) is operated by Battelle for the U.S. Department of Energy (DOE) under contract DE-AC05-76RL01830. 
 
 ## Contributing
