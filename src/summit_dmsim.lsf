@@ -1,5 +1,5 @@
 #!/bin/bash
-#BSUB -P CSC297
+#BSUB -P CSCXXX
 #BSUB -W 1
 #BSUB -nnodes 171
 #BSUB -o out_cc.txt -e err_cc.txt
