@@ -94,7 +94,7 @@ DM-Sim is bounded by GPU memory access bandwidth, and possibly by interconnect b
 | 100K |     558.0s  |     7.31ms    |   558.0s   |  5.58ms   |
 |  1M  |    5645.5s  |     7.21ms    |   5645.5s  |  5.65ms   |
 
-#### Performance on ORNL Summit supercomputer, the numbers on the bars indicat the number of GPUs utilized.
+#### Performance on ORNL Summit supercomputer, the numbers on the bars indicat the number of GPUs utilized. For benchmarks, please see [arXiv](https://arxiv.org/abs/2005.13018).
 <img src="img/summit.png" width="500">
 
 ## Compile
