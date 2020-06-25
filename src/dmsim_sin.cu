@@ -12,6 +12,7 @@
 // ---------------------------------------------------------------------------
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "util.cuh"
 #include "gate.cuh"
 #include "circuit.cuh"
@@ -45,7 +46,7 @@ int main()
     
     const idxtype dm_num = DIM*DIM;
     const idxtype dm_size = dm_num*(idxtype)sizeof(double);
-    const idxtype dm_num_per_GPU = dm_num; 
+    //const idxtype dm_num_per_GPU = dm_num; 
     const idxtype dm_size_per_GPU = dm_size;
 
     double* dm_real_cpu = NULL;
@@ -69,8 +70,11 @@ int main()
     memset(dm_real_res, 0, dm_size_per_GPU);
     memset(dm_imag_res, 0, dm_size_per_GPU);
 
+    dm_real_cpu[0] = 1;
+    //dm_real_cpu[dm_num-1] = 1;
+
 #ifdef RAND_INIT_DM
-    for (idxtype i=0; i<dm_num_per_GPU; i++)
+    for (idxtype i=0; i<dm_num; i++)
     {
         dm_real_cpu[i] = (double)rand() / (double)RAND_MAX - 0.5;
         dm_imag_cpu[i] = (double)rand() / (double)RAND_MAX - 0.5;
@@ -149,6 +153,11 @@ int main()
     printf("\nnqubits:%d, ngpus:%d, comp:%.3lf, comm:%.3lf, sim:%.3lf, mem:%.3lf\n",
             N_QUBITS, 1, sim.measure(), 0.0, 
             sim.measure(), gpu_mem/1024/1024);
+
+//=================================== Measure =====================================
+    measurement(dm_real_res);
+    //print_sv(dm_real_res, dm_imag_res); //print state-vector (i.e., diag of resulting dm)
+    //print_dm(dm_real_res, dm_imag_res); //print resulting density-matrix
 
 //=================================== Finalize =====================================
     SAFE_FREE_HOST(dm_real_cpu);

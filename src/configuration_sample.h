@@ -14,13 +14,12 @@
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
-
 // ================================= Configurations =====================================
 // N_QUBITS is the number of qubits
 // GPU_SCALE is 2^x of the number of GPUs, e.g., with 8 GPUs the GPU_SCALE is 3 (2^3=8)
 
-#define N_QUBITS 15
-#define GPU_SCALE 2 
+#define N_QUBITS 10
+#define GPU_SCALE 0 
 
 // Index type: for N_QUBITS>16, we should use unsigned long long int, 
 // otherwise we use unsigned int.
@@ -37,7 +36,7 @@ typedef unsigned idxtype;
 #define RAND_SEED 5
 
 // randomly initialize density-matrix
-#define RAND_INIT_DM 1
+// #define RAND_INIT_DM 1
 
 // Size of the density matrix
 #define DIM ((idxtype)1<<(N_QUBITS))
@@ -61,7 +60,6 @@ typedef unsigned idxtype;
 #define PI  3.14159265358979323846
 //Error bar for validation
 #define ERROR_BAR (1e-3)
-
 
 // =============================== Standard Gates ===================================
 //3-parameter 2-pulse single qubit gate
@@ -96,7 +94,6 @@ typedef unsigned idxtype;
 #define RY(A,B) RY_GATE(dm_real, dm_imag, A, B)
 //Rotation around Z-axis
 #define RZ(A,B) RZ_GATE(dm_real, dm_imag, A, B)
-
 
 // =============================== Composition Gates ===================================
 //Controlled-Phase

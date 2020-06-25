@@ -27,11 +27,11 @@ using namespace cooperative_groups;
     const idxtype inner_bound = (1 << qubit); \
         for (idxtype i = tid; i < outer_bound* inner_bound * M_GPU; i+=blockDim.x*gridDim.x){ \
             idxtype col = i / (inner_bound * outer_bound); \
-        idxtype outer = (i % (inner_bound * outer_bound)) / inner_bound; \
-        idxtype inner =  i % inner_bound; \
-        idxtype offset = (2 * outer) * inner_bound; \
-        idxtype pos0 = col * DIM + offset + inner; \
-        idxtype pos1 = pos0 + inner_bound; 
+            idxtype outer = (i % (inner_bound * outer_bound)) / inner_bound; \
+            idxtype inner =  i % inner_bound; \
+            idxtype offset = (2 * outer) * inner_bound; \
+            idxtype pos0 = col * DIM + offset + inner; \
+            idxtype pos1 = pos0 + inner_bound; 
 
 //Define MG-BSP machine operation header (Optimized version)
 #define OP_HEAD grid_group grid = this_grid(); \
@@ -153,17 +153,18 @@ __device__ __inline__ void C2_GATE(double* dm_real, double* dm_imag,
            [0 0 0 1]
            [0 0 1 0]
 */
-__device__ __inline__ void CX_GATE(double* dm_real, double* dm_imag, const idxtype qubit,
-        const idxtype ctrl)
+__device__ __inline__ void CX_GATE(double* dm_real, double* dm_imag, const idxtype ctrl,
+        const idxtype qubit)
 {
     grid_group grid = this_grid(); 
     const int tid = blockDim.x * blockIdx.x + threadIdx.x; 
+    assert (ctrl != qubit); //Non-cloning
     const idxtype q0dim = (1 << max(ctrl, qubit) );
     const idxtype q1dim = (1 << min(ctrl, qubit) );
-    assert (ctrl != qubit); //Non-cloning
     const idxtype outer_factor = (DIM + q0dim + q0dim - 1) >> (max(ctrl,qubit)+1);
     const idxtype mider_factor = (q0dim + q1dim + q1dim - 1) >> (min(ctrl,qubit)+1);
     const idxtype inner_factor = q1dim;
+    const idxtype ctrldim = (1 << ctrl);
 
     for (idxtype i = tid; i < outer_factor * mider_factor * inner_factor * M_GPU; 
             i+=blockDim.x*gridDim.x)
@@ -173,28 +174,19 @@ __device__ __inline__ void CX_GATE(double* dm_real, double* dm_imag, const idxty
         idxtype outer = ((row/inner_factor) / (mider_factor)) * (q0dim+q0dim);
         idxtype mider = ((row/inner_factor) % (mider_factor)) * (q1dim+q1dim);
         idxtype inner = row % inner_factor;
-        idxtype pos2 = col * DIM + outer + mider + inner;
-        idxtype pos3 = col * DIM + outer + mider + inner + q1dim;
-        const double el2_real = dm_real[pos2]; 
-        const double el2_imag = dm_imag[pos2];
-        const double el3_real = dm_real[pos3]; 
-        const double el3_imag = dm_imag[pos3];
 
-        if ((el2_real == 1.0) && (el2_imag == 0.0) && (el3_real == 0.0) && (el3_imag == 0.0))
-        {
-            idxtype pos0 = col * DIM + outer + mider + inner + q0dim;
-            idxtype pos1 = col * DIM + outer + mider + inner + q0dim + q1dim;
-            assert (pos0 < DIM*M_GPU); //ensure not out of bound
-            assert (pos1 < DIM*M_GPU); //ensure not out of bound
-            const double el0_real = dm_real[pos0]; 
-            const double el0_imag = dm_imag[pos0];
-            const double el1_real = dm_real[pos1]; 
-            const double el1_imag = dm_imag[pos1];
-            dm_real[pos0] = el1_real; 
-            dm_imag[pos0] = el1_imag;
-            dm_real[pos1] = el0_real; 
-            dm_imag[pos1] = el0_imag;
-        }
+        idxtype pos0 = col * DIM + outer + mider + inner + ctrldim;
+        idxtype pos1 = col * DIM + outer + mider + inner + q0dim + q1dim;
+        //assert (pos0 < DIM*M_GPU); //ensure not out of bound
+        //assert (pos1 < DIM*M_GPU); //ensure not out of bound
+        const double el0_real = dm_real[pos0]; 
+        const double el0_imag = dm_imag[pos0];
+        const double el1_real = dm_real[pos1]; 
+        const double el1_imag = dm_imag[pos1];
+        dm_real[pos0] = el1_real; 
+        dm_imag[pos0] = el1_imag;
+        dm_real[pos1] = el0_real; 
+        dm_imag[pos1] = el0_imag;
     }
     grid.sync();
 }
