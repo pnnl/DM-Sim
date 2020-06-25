@@ -72,6 +72,7 @@ int main()
     memset(dm_imag_res, 0, dm_size);
     memset(dm_real_cpu, 0, dm_size);
     memset(dm_imag_cpu, 0, dm_size);
+    dm_real_cpu[0] = 1; //Initial State: all 0s.
 
 #ifdef RAND_INIT_DM
     for (int i=0; i<DIM*DIM; i++)
@@ -128,6 +129,14 @@ int main()
         cudaSafeCall(cudaMemset(dm_real_buf[dev], 0, dm_size_per_GPU));
         cudaSafeCall(cudaMemset(dm_imag_buf[dev], 0, dm_size_per_GPU));
 
+
+
+        //===
+        //cudaSafeCall(cudaDeviceSynchronize());
+        //#pragma omp barrier
+        //===
+        
+
 #pragma omp barrier
 //=================================== Kernel =====================================
         
@@ -138,6 +147,8 @@ int main()
         cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm, 
                 simulation, THREADS_PER_BLOCK, 0);
         gridDim.x = numBlocksPerSm * deviceProp.multiProcessorCount;
+
+
 
         bool isforward = true;
 
@@ -154,7 +165,8 @@ int main()
         DEEP_SIM(dm_real[dev], dm_imag[dev], gridDim); 
         //Only perform packing function for deep circuit
         cudaLaunchCooperativeKernel((void*)simulation,gridDim,THREADS_PER_BLOCK,args,0);
-
+        
+        cudaSafeCall(cudaDeviceSynchronize());
         comp.stop_timer();
         comm.start_timer();
 
@@ -177,6 +189,12 @@ int main()
         cudaSafeCall(cudaStreamSynchronize(0));
 
         comm.stop_timer();
+
+        //===
+        //cudaSafeCall(cudaDeviceSynchronize());
+        //#pragma omp barrier
+        //===
+
 #pragma omp barrier
 
         isforward = false;
@@ -186,13 +204,19 @@ int main()
         DEEP_SIM(dm_real[dev], dm_imag[dev], gridDim);
         sim.stop_timer();
 
+        //===
+        //cudaSafeCall(cudaDeviceSynchronize());
+        //#pragma omp barrier
+        //===
+
 //=================================== Copy Back =====================================
         cudaSafeCall(cudaDeviceSynchronize());
+#pragma omp barrier
         cudaSafeCall(cudaMemcpy(&dm_real_res[dev*DIM*slices_per_dev], dm_real[dev], 
                     dm_size_per_GPU, cudaMemcpyDeviceToHost));
         cudaSafeCall(cudaMemcpy(&dm_imag_res[dev*DIM*slices_per_dev], dm_imag[dev], 
                     dm_size_per_GPU, cudaMemcpyDeviceToHost));
-        
+
         comp_times[dev] = comp.measure();
         comm_times[dev] = comm.measure();
         sim_times[dev] = sim.measure();
@@ -246,6 +270,12 @@ int main()
             N_QUBITS, N_GPUS, (avg_sim_time-avg_comm_time), avg_comm_time, 
             avg_sim_time, total_gpu_mem/1024/1024);
 
+//=================================== Measure =====================================
+    //print_sv(dm_real_res, dm_imag_res); //print state-vector (i.e., diag of resulting dm)
+    //print_dm(dm_real_res, dm_imag_res); //print resulting density-matrix
+    measurement(dm_real_res);
+
+//=================================== Finalize =====================================
     SAFE_FREE_HOST(dm_real_cpu);
     SAFE_FREE_HOST(dm_imag_cpu);
     SAFE_FREE_HOST(dm_real_res);
