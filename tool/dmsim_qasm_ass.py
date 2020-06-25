@@ -339,7 +339,7 @@ def parse(infile, mainfile):
                 elif op in GATE_TABLE:
                     # At this point, it is sure user-defined gate definition
                     # is done!
-                    if not is_deep_circuit and  start_global_circuit is False:
+                    if not is_deep_circuit and start_global_circuit is False:
                         start_global_circuit = True
                         s = "__device__ __inline__ void circuit" \
                                 + "(double* dm_real, double* dm_imag)\n" \

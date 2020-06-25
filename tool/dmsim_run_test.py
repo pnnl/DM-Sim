@@ -45,6 +45,9 @@ def generate_circuit(n_qubit, n_gate, rand=False):
 def make(n_gpu, n_qubit):
     outfile = open("configuration.h","w")
     infile = open("configuration_sample.h","r")
+    if args.sim == 'sin' and n_gpu != 1:
+        print ("Error: for single-GPU simulation, n_gpu must be 1")
+        exit(1)
     for l in infile.readlines():
         if l.startswith('#define N_QUBITS'):
             s = "#define N_QUBITS " + str(n_qubit) + "\n"
