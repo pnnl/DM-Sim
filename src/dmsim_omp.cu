@@ -129,14 +129,6 @@ int main()
         cudaSafeCall(cudaMemset(dm_real_buf[dev], 0, dm_size_per_GPU));
         cudaSafeCall(cudaMemset(dm_imag_buf[dev], 0, dm_size_per_GPU));
 
-
-
-        //===
-        //cudaSafeCall(cudaDeviceSynchronize());
-        //#pragma omp barrier
-        //===
-        
-
 #pragma omp barrier
 //=================================== Kernel =====================================
         
@@ -147,8 +139,6 @@ int main()
         cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm, 
                 simulation, THREADS_PER_BLOCK, 0);
         gridDim.x = numBlocksPerSm * deviceProp.multiProcessorCount;
-
-
 
         bool isforward = true;
 
@@ -190,11 +180,6 @@ int main()
 
         comm.stop_timer();
 
-        //===
-        //cudaSafeCall(cudaDeviceSynchronize());
-        //#pragma omp barrier
-        //===
-
 #pragma omp barrier
 
         isforward = false;
@@ -203,11 +188,6 @@ int main()
         //Empty function for shallow circuit
         DEEP_SIM(dm_real[dev], dm_imag[dev], gridDim);
         sim.stop_timer();
-
-        //===
-        //cudaSafeCall(cudaDeviceSynchronize());
-        //#pragma omp barrier
-        //===
 
 //=================================== Copy Back =====================================
         cudaSafeCall(cudaDeviceSynchronize());
