@@ -65,8 +65,6 @@ int main(int argc, char *argv[])
 
     const idxtype dm_num = DIM*DIM;
     const idxtype dm_size = dm_num*sizeof(double);
-
-    const idxtype dm_num_per_GPU = dm_num / n_devs; 
     const idxtype dm_size_per_GPU = dm_size / n_devs;
 
     double* dm_real_cpu = NULL;
@@ -83,8 +81,10 @@ int main(int argc, char *argv[])
     memset(dm_imag_cpu, 0, dm_size_per_GPU);
     memset(dm_real_res, 0, dm_size_per_GPU);
     memset(dm_imag_res, 0, dm_size_per_GPU);
+    if (dev == 0) dm_real_cpu[0] = 1; //Initial State: all 0s.
 
 #ifdef RAND_INIT_DM
+    const idxtype dm_num_per_GPU = dm_num / n_devs; 
     for (idxtype i=0; i<dm_num_per_GPU; i++)
     {
         dm_real_cpu[i] = (double)rand() / (double)RAND_MAX - 0.5;
@@ -128,8 +128,6 @@ int main(int argc, char *argv[])
     
     cudaSafeCall(cudaMemset(dm_real_buf, 0, dm_size_per_GPU));
     cudaSafeCall(cudaMemset(dm_imag_buf, 0, dm_size_per_GPU));
-
-
 
 //=================================== Kernel =====================================
     dim3 gridDim(1,1,1);
@@ -246,6 +244,29 @@ int main(int argc, char *argv[])
         SAFE_FREE_HOST(sim_times);
     }
 
+
+//=================================== Measure =====================================
+    double* sv_diag = NULL;
+    if (dev == 0) SAFE_ALOC_HOST(sv_diag, DIM*sizeof(double));
+    idxtype sv_num_per_GPU = M_GPU;
+    idxtype sv_size_per_GPU = sv_num_per_GPU * sizeof(double);
+    double* sv_diag_per_GPU = NULL;
+    SAFE_ALOC_HOST(sv_diag_per_GPU, sv_size_per_GPU);
+    for (idxtype i=0; i<sv_num_per_GPU; i++)
+        sv_diag_per_GPU[i] = abs(dm_real_res[i*DIM+(dev*M_GPU+i)]);
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Gather(sv_diag_per_GPU, sv_num_per_GPU, MPI_DOUBLE,
+            &sv_diag[dev*sv_num_per_GPU], sv_num_per_GPU, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
+    if (dev == 0)
+    {
+        measurement_diag(sv_diag);
+        SAFE_FREE_HOST(sv_diag);
+    }
+    SAFE_FREE_HOST(sv_diag_per_GPU);
+
+//=================================== Finalize =====================================
     SAFE_FREE_HOST(dm_real_cpu);
     SAFE_FREE_HOST(dm_imag_cpu);
     SAFE_FREE_HOST(dm_real_res);
