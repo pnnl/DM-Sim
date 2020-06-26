@@ -134,7 +134,7 @@ int main()
         
         dim3 gridDim(1,1,1);
         cudaDeviceProp deviceProp;
-        cudaGetDeviceProperties(&deviceProp, dev);
+        cudaSafeCall(cudaGetDeviceProperties(&deviceProp, dev));
         int numBlocksPerSm;
         cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm, 
                 simulation, THREADS_PER_BLOCK, 0);

@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
 //=================================== Kernel =====================================
     dim3 gridDim(1,1,1);
     cudaDeviceProp deviceProp;
-    cudaGetDeviceProperties(&deviceProp, dev);
+    cudaSafeCall(cudaGetDeviceProperties(&deviceProp, 0));
     int numBlocksPerSm;
     cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm, 
             simulation, THREADS_PER_BLOCK, 0);

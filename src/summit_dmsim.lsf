@@ -1,9 +1,10 @@
 #!/bin/bash
-#BSUB -P CSC297
+#BSUB -P XXX
 #BSUB -W 1
 #BSUB -nnodes 171
 #BSUB -o out_cc.txt -e err_cc.txt
 
+module load xl
 module load cuda/9.2.148
 module load spectrum-mpi
 
