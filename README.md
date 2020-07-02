@@ -124,7 +124,7 @@ Using the following command for execution:
 ```
 
 ### Scale-out
-
+This is the execution command on ORNL Summit supercomputer (1024 resource sets with 1024 MPI ranks, 1 GPU per rank) with GPUDirect-RDMA enabled.
 ```text
 jsrun -n1024 -a1 -g1 -c1 --smpiargs="-gpu" ./dmsim_mpi
 ```
