@@ -1,6 +1,6 @@
 # DM_Sim: Quantum Circuit Simulator via Density Matrix on GPU Clusters
 
-A Density Matrix Quantum Simulator for Single-GPU, Single-Node-Multi-GPUs and Multi-Nodes GPU Cluster. Please see our paper for details.
+A Density Matrix Quantum Simulator for Single-GPU, Single-Node-Multi-GPUs and Multi-Nodes GPU Cluster. Please see our SuperComputing (SC-20) [paper](doc/paper_sc20.pdf) for details.
 
 ![alt text](img/example.png)
 
@@ -9,6 +9,8 @@ A Density Matrix Quantum Simulator for Single-GPU, Single-Node-Multi-GPUs and Mu
 Latest version: **1.0**
 
 DM_Sim is still under active development. Please be patient if there's an error. We will continuously add new features. Questions and suggestions are welcome.
+
+We will refine the design and implementation so that a new circuit can be directly launched and execcute it without the need to recompile (which is the current practice). This will benefit emerging quantum-classical hybrid algorithms where the quantum circuits are adjusted and executed online guided by classical optimization process. In the future version we will try to provide Python interface and support Q#/QDK.
 
 ## About DM_Sim
 
@@ -340,7 +342,7 @@ This project is licensed under the BSD License, see [LICENSE](LICENSE) file for 
 
 **PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160**
 
-We thank the anonymous reviewers for their feedback and suggestions on our paper. This work was supported by PNNL's *Quantum Algorithms, Software, and Architectures* (QUASAR) LDRD Initiative. The Pacific Northwest National Laboratory (PNNL) is operated by Battelle for the U.S. Department of Energy (DOE) under contract DE-AC05-76RL01830. 
+We thank the SC-20 anonymous reviewers for their feedback and suggestions on our paper. This work was supported by PNNL's *Quantum Algorithms, Software, and Architectures* (QUASAR) LDRD Initiative. The Pacific Northwest National Laboratory (PNNL) is operated by Battelle for the U.S. Department of Energy (DOE) under contract DE-AC05-76RL01830. 
 
 ## Contributing
 
