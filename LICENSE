@@ -1,9 +1,8 @@
-DM_Sim: A Density Matrix Quantum Simulator for Single-GPU, Single-Node-Multi-GPUs and Multi-Nodes GPU Cluster.
+DM-Sim: A Density Matrix Quantum Simulator for Single-GPU, Single-Node-Multi-GPUs and Multi-Nodes GPU Cluster.
 
 06/05/2020 by Ang Li from High-Performance-Computing Group,
 ACMD, PCSD, Pacific Northwest National Laboratory (PNNL),
 Richland, WA, 99354, USA.
-
 
 Copyright © 2020, Battelle Memorial Institute
 

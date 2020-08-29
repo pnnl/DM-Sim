@@ -1,15 +1,16 @@
 # ---------------------------------------------------------------------------
-# File: dmsim_qasm_ass.py
-# Translate OpenQASM assembly code to native circuit file ("circuit.cuh").
+# DM-Sim: Density-Matrix quantum circuit simulator based on GPU clusters
+# Version 2.0
 # ---------------------------------------------------------------------------
-# See our SC-20 paper for detail.
+# File: dmsim_qasm.py
+# Translate OpenQASM assembly code to DMSim python code
+# ---------------------------------------------------------------------------
 # Ang Li, Scientist, Pacific Northwest National Laboratory(PNNL), U.S.
 # Homepage: http://www.angliphd.com
 # GitHub repo: http://www.github.com/pnnl/DM-Sim
 # PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
 # BSD Lincese.
 # ---------------------------------------------------------------------------
-
 import argparse
 import string
 import os
@@ -181,20 +182,20 @@ def function_gate(line, line_id):
         return s, n, cx
     op = get_op(line)
     if op in function_table: # User-defined gate function
-        s = "\t" + op + "(dm_real, dm_imag, " 
+        s = "\t" + op + "(sim, " 
         #line = line[len(op)+1:-1].replace(')','),')
         line = line[len(op)+1:].replace(')','),')
         params = line.split(",")
         #print (params)
         for param in params:
             s += param.strip() + ", " 
-        s = s[:-2] + ");\n"
+        s = s[:-2] + "):\n"
         n = function_table[op]
         cx = cx_table[op]
     elif op in GATE_TABLE: # OpenQASM built-in gate
         paramlist_ga = paramlist_to_ga(line[line.find(" ")+1:])
         for p in paramlist_ga:
-            s += "\t" + op.upper() + "(" + p + ");\n"
+            s += "\tsim.append(sim." + op.upper() + "(" + p + "))\n"
         n = len(paramlist_ga) * GATE_TABLE[op]
         cx = len(paramlist_ga) * CX_TABLE[op]
     elif op in ['{','}']:
@@ -219,7 +220,7 @@ def builtin_gate(line, line_id):
             #print (line)
         paramlist_ga = paramlist_to_ga(line[line.find(" ")+1:])
         for p in paramlist_ga:
-            s += "\t" + op.upper() + "(" + p + ");\n"
+            s += "sim.append(sim." + op.upper() + "(" + p + "))\n"
         n = len(paramlist_ga) * GATE_TABLE[op]
         cx = len(paramlist_ga) * CX_TABLE[op]
     else:
@@ -236,39 +237,13 @@ def parse(infile, mainfile):
     global gate_num
     global cx_num
     global seg_num
-    is_deep_circuit = False
     prev_gate_num = 0
     qreg_idx = 0
     start_global_circuit = False
     s = str("")
+    outfile = mainfile
+    outfile.write("sim = dmsim.Simulation(int(sys.argv[1]), int(sys.argv[2]))\n\n")
     lines = infile.readlines()
-    # If circuit_depth > threshold, we need deep mode
-    # Deep circuits
-    if len(lines) > args.threshold:
-        is_deep_circuit = True
-        seg_num = 0
-        #Write to mainfile
-        s = "__device__ __inline__ void circuit(double* dm_real, "\
-                + "double* dm_imag)\n{\n}\n\n"
-        mainfile.write(s)
-        #Write to makefile
-        makefile = open("Makefile","w")
-        makefile.write("CC = nvcc\nFLAGS = -O3 -arch=" + SM \
-                + " -rdc=true\nLIBS = -lm\n\nall: " + SIM + "\n\n")
-        #Write to outfile
-        outfile = open("circuit_" + "0" + ".cu","w") #First segment
-        outfile.write('#include "gate.cuh"\n\n')
-        s = str("__global__ void simulation_") + "0" \
-                + ("(double* dm_real, double* dm_imag)\n{\n")
-        outfile.write(s)
-    # Shallow circuits
-    else:
-        is_deep_circuit = False
-        s = "void deep_simulation(double* dm_real, double* dm_imag," \
-                + "dim3 gridDim){}\n\n" 
-        mainfile.write(s)
-        outfile = mainfile
-
     i = 0
     while i < len(lines):
         l = lines[i].strip().strip('\n')
@@ -276,7 +251,7 @@ def parse(infile, mainfile):
         if l != "":
             ## User-defined comments, 
             if l.lstrip().startswith("//"):
-                s += l[l.find("//"):] + "\n"
+                s += '#' + l[l.find("//")+2:] + "\n"
                 outfile.write(s)
             else:
                 # If comment at end, extract op
@@ -289,7 +264,7 @@ def parse(infile, mainfile):
                     s = ""
                     paramlist_ga = paramlist_to_ga(l[len(op)+1:-1])
                     for p in paramlist_ga:
-                        s += "\t" + op + "(dm_real, dm_imag, " + p + ");\n"
+                        s += "" + op + "(sim, " + p + ")\n"
                     gate_num += len(paramlist_ga) * function_table[op]
                     cx_num += len(paramlist_ga) * cx_table[op]
                 # User-defined gate function definition
@@ -304,14 +279,14 @@ def parse(infile, mainfile):
                     if  pos != -1: #extra params
                         gate_name = gate_name[:pos]
                         params = gate_name[pos+1:gate_name.find(')')].strip()
-                    s = "__device__ __inline__ void " + gate_name \
-                            + "(double* dm_real, double* dm_imag"
+                    s = "def " + gate_name \
+                            + "(sim"
                     if params != "":
                         for param in params.split(','):
-                            s += ", const double " + param
+                            s += ", " + param
                     for qreg in qregs:
-                        s += ", const unsigned " + qreg
-                    s += ")\n" + "{\n"
+                        s += ", " + qreg
+                    s += "):\n" 
                     i = i+1 #jump {
                     l = lines[i].strip().strip('\n')
                     while not l.startswith("}"):
@@ -324,7 +299,7 @@ def parse(infile, mainfile):
                             cx += cx1
                         i = i+1
                         l = lines[i].strip().strip('\n')
-                    s += "}\n"
+                    s += "\n"
                     function_table[gate_name] = n
                     cx_table[gate_name] = cx
                 #Define quantum register, build up global array
@@ -337,15 +312,6 @@ def parse(infile, mainfile):
                     qreg_idx += bits
                 #Built-in gate invokation
                 elif op in GATE_TABLE:
-                    # At this point, it is sure user-defined gate definition
-                    # is done!
-                    if not is_deep_circuit and  start_global_circuit is False:
-                        start_global_circuit = True
-                        s = "__device__ __inline__ void circuit" \
-                                + "(double* dm_real, double* dm_imag)\n" \
-                                + "{\n"
-                    else:
-                        s = ""
                     ss, n, cx = builtin_gate(l,i)
                     gate_num += n
                     s += ss
@@ -356,124 +322,31 @@ def parse(infile, mainfile):
                 else:
                     print ("Unknown symbol: " + op)
                 outfile.write(s)
-
-                #If deep circuit, we may need to start a new segment
-                if is_deep_circuit and (gate_num - prev_gate_num >= args.threshold):
-                    outfile.write("}\n\n")
-                    outfile.close()
-                    prev_gate_num = gate_num #Update prev_gate_num for a new segment
-                    seg_num += 1 #One more segment
-                    outfile = open("circuit_" + str(seg_num) + ".cu","w") #First segment
-                    outfile.write('#include "gate.cuh"\n\n')
-                    s = str("__global__ void simulation_") + str(seg_num) \
-                            + ("(double* dm_real, double* dm_imag)\n{\n")
-                    outfile.write(s)
-
         i = i+1
-    if is_deep_circuit:
-        outfile.write("}\n\n")
-        outfile.close()
-        for k in range(0,seg_num):
-            #write header file
-            s = str("__global__ void simulation_") + str(k) \
-                    + ("(double* dm_real, double* dm_imag);\n")
-            mainfile.write(s)
-        
-        #Write to mainfile
-        s = "\nvoid deep_simulation(double* dm_real, double* dm_imag, "\
-                + "dim3 gridDim)\n" \
-                + "{\n\tvoid* args_step[] = {&dm_real, &dm_imag};\n"
-        mainfile.write(s)
+    s = "\nsim.upload()\n"
+    s += "sim.run()\n"
+    s += "sim.measure(10)\n"
+    outfile.write(s)
 
-        for k in range(0,seg_num):
-            #Write to mainfile
-            s = str("\tcudaLaunchCooperativeKernel((void*)simulation_") + str(k) \
-                    + str(",gridDim,THREADS_PER_BLOCK,args_step,0);\n")
-            mainfile.write(s)
-            #Write to makefile
-            s = ''
-            if args.sim == 'omp':
-                s = str("circuit_")+str(k)+".o: circuit_" +str(k) + ".cu\n" \
-                        + "\t$(CC) $(FLAGS) $(LIBS) -Xcompiler -fopenmp -c $^\n"
-            elif args.sim == 'mpi':
-                s = str("circuit_")+str(k)+".o: circuit_" +str(k) + ".cu\n" \
-                        + "\t$(CC) $(FLAGS) $(LIBS) -ccbin mpicc -c $^\n"
-            else:
-                s = str("circuit_")+str(k)+".o: circuit_" +str(k) + ".cu\n" \
-                        + "\t$(CC) $(FLAGS) $(LIBS) -c $^\n"
-            makefile.write(s)
-
-        if args.sim == 'omp':
-            s = "\n" + SIM + ".o: " + SIM + ".cu gate.cuh configuration.h circuit.cuh\n"\
-                    + "\t$(CC) $(FLAGS) $(LIBS) -Xcompiler -fopenmp -c " + SIM + ".cu\n\n"
-        elif args.sim == 'mpi':
-            s = "\n" + SIM + ".o: " + SIM + ".cu gate.cuh configuration.h circuit.cuh\n"\
-                    + "\t$(CC) $(FLAGS) $(LIBS) -ccbin mpicc -c " + SIM + ".cu\n\n"
-        else:
-            s = "\n" + SIM + ".o: " + SIM + ".cu gate.cuh configuration.h circuit.cuh\n"\
-                    + "\t$(CC) $(FLAGS) $(LIBS) -c " + SIM + ".cu\n\n"
-        makefile.write(s)
-
-        
-        #Separate compilation (use "make -j X") for parallel accelration of the making process
-        s = SIM + ": " + SIM + ".o "
-        for k in range(0,seg_num):
-            s += "circuit_"+ str(k) + ".o "
-        makefile.write(s+"\n")
-
-        #Linking
-        if args.sim == 'omp':
-            s = "\t$(CC) $(FLAGS) $(LIBS) -Xcompiler -fopenmp *.o -o $@\n" + \
-                    "\nclean:\n\trm -rf *.o dm_sim\n\n"
-        elif args.sim == 'mpi':
-            s = "\t$(CC) $(FLAGS) $(LIBS) -ccbin mpicc *.o -o $@\n" + \
-                    "\nclean:\n\trm -rf *.o dm_sim\n\n"
-        else:
-            s = "\t$(CC) $(FLAGS) $(LIBS) *.o -o $@\n" + \
-                    "\nclean:\n\trm -rf *.o dm_sim\n\n"
-        makefile.write(s)
-
-        makefile.close()
-        mainfile.write("}\n")
-    else:
-        #Write to makefile
-        makefile = open("Makefile","w")
-        makefile.write("CC = nvcc\nFLAGS = -O3 -arch=" + SM \
-                + " -rdc=true\nLIBS = -lm\n\nall: " + SIM + "\n\n")
-        s = ""
-        if args.sim == 'omp':
-            s = "\n" + SIM +": " + SIM + ".cu gate.cuh configuration.h circuit.cuh util.cuh\n"\
-                    + "\t$(CC) $(FLAGS) $(LIBS) -Xcompiler -fopenmp " + SIM + ".cu -o $@\n\n"
-        elif args.sim == 'mpi':
-            s = "\n" + SIM +": " + SIM + ".cu gate.cuh configuration.h circuit.cuh util.cuh\n"\
-                    + "\t$(CC) $(FLAGS) $(LIBS) -ccbin mpicc " + SIM + ".cu -o $@\n\n"
-        else:
-            s = "\n" + SIM +": " + SIM + ".cu gate.cuh configuration.h circuit.cuh util.cuh\n"\
-                    + "\t$(CC) $(FLAGS) $(LIBS) " + SIM + ".cu -o $@\n\n"
-        makefile.write(s)
-        s = "\nclean:\n\trm -rf *.o " + SIM + "\n"
-        makefile.write(s)
-        makefile.close()
-        outfile.write("}\n")
 
 # Main Program
-parser = argparse.ArgumentParser(description='DM_Sim Assembler for OpenQASM: translating OpenQASM to DM_sim native simulation circuit code.')
+parser = argparse.ArgumentParser(description='DM_Sim Assembler for OpenQASM-V2.0: translating OpenQASM to DM_sim native simulation circuit code.')
 parser.add_argument('--input', '-i', help='input OpenQASM file, such as adder.qasm')
-parser.add_argument('--output', '-o', default='circuit.cuh', help='output DM_Sim circuit device header file (default: circuit.cuh)') 
-parser.add_argument('--threshold', '-t', type=int, default=512, help='Number of gates per circuit file(default=512).') 
-parser.add_argument('--sim', '-s', default='omp', help="DM-Sim simulation mode: 'sin' for single-GPU, 'omp' for OpenMP scale-up, and 'mpi' for MPI scale-out.") 
+parser.add_argument('--output', '-o', default='dmsim_circuit.py', help='output DM_Sim circuit python file (default: dmsim_circuit.py)') 
 args = parser.parse_args()
 #print (args.input)
 
 # Parsing input and Writing to output
 qasmfile = open(args.input, "r")
 dmfile = open(args.output, "w")
-SIM = "dmsim_" + args.sim
 
-dmfile.write("#ifndef CIRCUIT_CUH\n")
-dmfile.write("#define CIRCUIT_CUH\n\n")
+dmfile.write("import sys\n")
+dmfile.write("import dmsim_py_omp_wrapper as dmsim\n\n")
+dmfile.write("if (len(sys.argv) != 3):\n")
+dmfile.write("\tprint('$python circuit.py n_qubits n_gpus')\n")
+dmfile.write("\texit()\n\n")
+
 parse(qasmfile, dmfile)
-dmfile.write("#endif\n")
 dmfile.close()
 qasmfile.close()
 
@@ -484,4 +357,7 @@ print ("== DM-Sim: Translating " + args.input + " to " + args.output + " ==")
 print ("Number of qubits: " + str(nqubits))
 print ("Number of basic gates: " + str(gate_num))
 print ("Number of cnot gates: " + str(cx_num))
+
+#cmd = "python " + args.output + " " + str(nqubits)
+#os.system(cmd)
 
