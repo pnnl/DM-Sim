@@ -233,17 +233,18 @@ public:
 
     ~Simulation()
     {
+        //Release circuit
+        clear_circuit();
+        //Release for GPU side
         SAFE_FREE_GPU(dm_real);
         SAFE_FREE_GPU(dm_imag);
         SAFE_FREE_GPU(dm_real_buf);
         SAFE_FREE_GPU(dm_imag_buf);
-
         //Release for CPU side
         SAFE_FREE_HOST(dm_real_cpu);
         SAFE_FREE_HOST(dm_imag_cpu);
         SAFE_FREE_HOST(dm_real_res);
         SAFE_FREE_HOST(dm_imag_res);
-        circuit.clear();
     }
     //add a gate to the current circuit
     void append(Gate* g)
@@ -264,7 +265,6 @@ public:
         //std::cout << "DM-Sim:" << n_gates 
         //<< "gates uploaded to GPU for execution!" << std::endl;
         
-        vector<Gate*> circuit_copy;
         for (IdxType t=0; t<n_gates; t++)
         {
             Gate* g_gpu = circuit[t]->upload();
@@ -381,7 +381,10 @@ public:
     {
         SAFE_FREE_GPU(sim_gpu);
         SAFE_FREE_GPU(circuit_gpu);
+        for (int g=0; g<n_gpus; g++)
+            SAFE_FREE_GPU(circuit_copy[g]);
         circuit.clear();
+        circuit_copy.clear();
         n_gates = 0;
     }
     void measure(int repetition=10)
@@ -681,6 +684,8 @@ public:
     
     ValType gpu_mem;
     vector<Gate*> circuit;
+    //for freeing GPU-side gates in clear(), otherwise there can be GPU memory leak
+    vector<Gate*> circuit_copy;
     Gate** circuit_gpu;
 
     Simulation* sim_gpu;

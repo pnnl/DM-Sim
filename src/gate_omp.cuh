@@ -186,7 +186,11 @@ public:
         dm_size(dm_num*(IdxType)sizeof(ValType)),
         dm_size_per_gpu(dm_size/n_gpus),
         circuit_gpu(NULL),
-        sim_gpu(NULL)
+        sim_gpu(NULL),
+        dm_real(NULL),
+        dm_imag(NULL),
+        dm_real_buf(NULL),
+        dm_imag_buf(NULL)
     {
         //CPU side initialization
         assert(is_power_of_2(n_gpus));
@@ -207,6 +211,7 @@ public:
         SAFE_ALOC_HOST(dm_imag_buf_ptr, sizeof(ValType*)*n_gpus);
         SAFE_ALOC_HOST(dm_real_ptr, sizeof(ValType*)*n_gpus);
         SAFE_ALOC_HOST(dm_imag_ptr, sizeof(ValType*)*n_gpus);
+        SAFE_ALOC_HOST(circuit_copy, sizeof(vector<Gate*>*)*n_gpus);
 
         //GPU side initialization
         for (unsigned d=0; d<n_gpus; d++)
@@ -235,6 +240,8 @@ public:
 
     ~Simulation()
     {
+        //Release circuit
+        clear_circuit();
         //Release for GPU side
         for (unsigned d=0; d<n_gpus; d++)
         {
@@ -253,8 +260,16 @@ public:
         SAFE_FREE_HOST(dm_imag_cpu);
         SAFE_FREE_HOST(dm_real_res);
         SAFE_FREE_HOST(dm_imag_res);
-        circuit.clear();
+
+        SAFE_FREE_HOST(dm_real_ptr);
+        SAFE_FREE_HOST(dm_imag_ptr);
+        SAFE_FREE_HOST(dm_real_buf_ptr);
+        SAFE_FREE_HOST(dm_imag_buf_ptr);
+
+        SAFE_FREE_HOST(circuit_copy);
     }
+
+
     //add a gate to the current circuit
     void append(Gate* g)
     {
@@ -278,14 +293,13 @@ public:
         for (unsigned d=0; d<n_gpus; d++)
         {
             cudaSafeCall(cudaSetDevice(d));
-            vector<Gate*> circuit_copy;
             for (IdxType t=0; t<n_gates; t++)
             {
                 Gate* g_gpu = circuit[t]->upload(d);
-                circuit_copy.push_back(g_gpu);
+                circuit_copy[d].push_back(g_gpu);
             }
             SAFE_ALOC_GPU(circuit_gpu, n_gates*sizeof(Gate*));
-            cudaSafeCall(cudaMemcpy(circuit_gpu, circuit_copy.data(), 
+            cudaSafeCall(cudaMemcpy(circuit_gpu, circuit_copy[d].data(), 
                         n_gates*sizeof(Gate*), cudaMemcpyHostToDevice));
             dm_real = dm_real_ptr[d];
             dm_imag = dm_imag_ptr[d];
@@ -403,11 +417,18 @@ public:
         for (unsigned d=0; d<n_gpus; d++)
         {
             SAFE_FREE_GPU(sim_gpu[d]);
+            for (int i=0; i<n_gates; i++)
+                SAFE_FREE_GPU(circuit_copy[d][i]);
+            circuit_copy[d].clear();
         }
         SAFE_FREE_HOST(sim_gpu);
         SAFE_FREE_GPU(circuit_gpu);
         circuit.clear();
         n_gates = 0;
+        dm_real = NULL;
+        dm_imag = NULL;
+        dm_real_buf = NULL;
+        dm_imag_buf = NULL;
     }
     void measure(int repetition=10)
     {
@@ -689,16 +710,20 @@ public:
     ValType** dm_real_buf_ptr;
     ValType** dm_imag_buf_ptr;
    
-    //GPU arrays
+    //GPU arrays, they are used as alias of particular pointers
     ValType* dm_real;
     ValType* dm_imag;
     ValType* dm_real_buf;
     ValType* dm_imag_buf;
     
     ValType gpu_mem;
+    //hold the CPU-side gates
     vector<Gate*> circuit;
+    //for freeing GPU-side gates in clear(), otherwise there can be GPU memory leak
+    vector<Gate*>* circuit_copy;
+    //hold the GPU-side gates
     Gate** circuit_gpu;
-
+    //hold the GPU-side simulator instances
     Simulation** sim_gpu;
 };
 
