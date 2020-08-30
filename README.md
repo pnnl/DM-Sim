@@ -162,6 +162,10 @@ sim.append(sim.X(0)) #add an X gate
 sim.append(sim.H(1)) #add an H gate
 sim.upload() #upload to GPU
 sim.run() #run
+sim.clear_circuit() #clear existing circuit
+sim.append(sim.H(0)) #add a new H gate 
+sim.upload() #upload to GPU
+sim.run() #run new circuit on original states
 sim.measure() #measure and print results
 ```
 
