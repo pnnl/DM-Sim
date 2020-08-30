@@ -52,7 +52,7 @@ DM-Sim (OpenMP) simulates 1M general gates with 15-qubits gate-by-gate in 94 min
 |C1 | Arbitrary 1-qubit gate | C2 | Arbitrary 2-qubit gate |
 
 ## Package Structure
-#### **src**: DM_Sim source file
+#### **src**: DM-Sim source file
  - util.cuh: utility functions.
  - gate_omp.cuh: Gate and Simulation definition for single-node single-GPU or multi-GPU (OpenMP) DM-Sim.
  - gate_mpi.cuh: Gate and Simulation definition for a multi-nodeMPI cluster (MPI with GPUDirect-RDMA) DM-Sim.
@@ -200,7 +200,14 @@ Test-9: 1000000010
 ```
 The inputs are: carry-in cin = 0, A=0001, B=1111. The outputs are: B=B+A=0000, carry-out=1.
 
-"**nqubits**" is the number of qubits simulated. "**ngates**" is the number of gates executed. "**ngpus**" is the number of GPUs utilized. "**comp**" is the computation time (ms) in the simulation. "**comm**" is the communication time (ms) in the simulation. "**sim**" is total simulation latency (ms). "**mem**" is the total GPU memory cost for all GPUs (MB). "**mem**" is the per-GPU memory usage (MB). 
+ - "**nqubits**" is the number of qubits simulated. 
+ - "**ngates**" is the number of gates executed. 
+ - "**ngpus**" is the number of GPUs utilized. 
+ - "**comp**" is the computation time (ms) in the simulation. 
+ - "**comm**" is the communication time (ms) in the simulation. 
+ - "**sim**" is total simulation latency (ms). 
+ - "**mem**" is the total GPU memory cost for all GPUs (in MBs). 
+ - "**mem**" is the per-GPU memory usage (in MBs). 
 
 The measurement measures all qubits at once. "**repetition**" refers to the number of repeated measurements. You can configure the number of trials when calling "measure()" in both C++/CUDA API and Python API. The default value is 10 times. 
 
@@ -208,7 +215,7 @@ The measurement measures all qubits at once. "**repetition**" refers to the numb
 
 To simulate qubit-size larger than 15, the index is already larger than a normal unsigned integer, you need to define **IdxType** to "**unsigned long long**" in "config.hpp". The **ValType** is by default **double**.
 
-When defining "CUDA_ERROR_CHECK", DM_Sim checks CUDA API error and kernel execution error.
+When defining "CUDA_ERROR_CHECK", DM-Sim checks CUDA API error and kernel execution error.
 
 
 

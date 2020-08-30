@@ -381,7 +381,7 @@ public:
     {
         SAFE_FREE_GPU(sim_gpu);
         SAFE_FREE_GPU(circuit_gpu);
-        for (int g=0; g<n_gpus; g++)
+        for (unsigned g=0; g<n_gates; g++)
             SAFE_FREE_GPU(circuit_copy[g]);
         circuit.clear();
         circuit_copy.clear();
@@ -419,7 +419,7 @@ public:
             SAFE_ALOC_HOST(res_state, (repetition*sizeof(IdxType)));
             memset(res_state, 0, (repetition*sizeof(IdxType)));
 
-            for (int i=0; i<repetition; i++)
+            for (unsigned i=0; i<repetition; i++)
             {
                 ValType r = (ValType)rand()/(ValType)RAND_MAX;
                 for (IdxType j=0; j<sv_num; j++)
