@@ -75,7 +75,8 @@ int main(int argc, char *argv[])
     sim.sim();
 
     //Measure
-    sim.measure();
+    auto res = sim.measure(5);
+    if (i_gpu == 0) print_measurement(res, 10, 5);
 
     //Finalize 
     MPI_Finalize();

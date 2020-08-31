@@ -383,14 +383,17 @@ public:
     {
         SAFE_FREE_GPU(sim_gpu);
         SAFE_FREE_GPU(circuit_gpu);
-        for (unsigned g=0; g<n_gpus; g++)
+        for (unsigned g=0; g<n_gates; g++)
             SAFE_FREE_GPU(circuit_copy[g]);
         circuit.clear();
         circuit_copy.clear();
         n_gates = 0;
     }
-    void measure(int repetition=10)
+    IdxType* measure(unsigned repetition=10)
     {
+        IdxType* res_state = (IdxType*)malloc(repetition*sizeof(IdxType));
+        memset(res_state, 0, (repetition*sizeof(IdxType)));
+
         double* sv_diag = NULL;
         if (i_gpu == 0) SAFE_ALOC_HOST(sv_diag, dim*sizeof(ValType));
         IdxType sv_num_per_GPU = m_gpu;
@@ -414,12 +417,7 @@ public:
             sv_diag_scan[0] = 0;
             for (unsigned i=1; i<sv_num+1; i++)
                 sv_diag_scan[i] = sv_diag_scan[i-1]+sv_diag[i-1];
-            printf("\n===============  Measurement (qubit=%d, repetition=%d) ================\n",
-                    n_qubits, repetition);
             srand(RAND_SEED);
-            IdxType* res_state = NULL;
-            SAFE_ALOC_HOST(res_state, (repetition*sizeof(IdxType)));
-            memset(res_state, 0, (repetition*sizeof(IdxType)));
 
             for (unsigned i=0; i<repetition; i++)
             {
@@ -427,18 +425,21 @@ public:
                 for (IdxType j=0; j<sv_num; j++)
                     if (sv_diag_scan[j]<=r && r<sv_diag_scan[j+1])
                         res_state[i] = j;
-                printf("Test-%d: ",i);
-                print_binary(res_state[i], n_qubits);
-                printf("\n");
             }
             //assert( abs(sv_diag_scan[sv_num] - 1.0) < ERROR_BAR);
             if ( abs(sv_diag_scan[sv_num] - 1.0) > ERROR_BAR )
                 printf("Sum of probability along diag is large with %lf\n", sv_diag_scan[sv_num]);
             SAFE_FREE_HOST(sv_diag_scan);
-            SAFE_FREE_HOST(res_state);
             SAFE_FREE_HOST(sv_diag);
         }
         SAFE_FREE_HOST(sv_diag_per_gpu);
+        MPI_Barrier(MPI_COMM_WORLD);
+        //If IdxType changes to unsigned long long, should use MPI_UNSIGNED_LONG_LONG here
+        assert(sizeof(IdxType)==sizeof(unsigned));
+        MPI_Bcast(res_state, repetition, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
+        MPI_Barrier(MPI_COMM_WORLD);
+        
+        return res_state;
     }
     void print_res_sv()
     {
