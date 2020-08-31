@@ -432,7 +432,7 @@ public:
         dm_real_buf = NULL;
         dm_imag_buf = NULL;
     }
-    void measure(int repetition=10)
+    IdxType* measure(unsigned repetition=10)
     {
         IdxType sv_num = dim;
         IdxType sv_size = sv_num * sizeof(ValType);
@@ -440,18 +440,13 @@ public:
         SAFE_ALOC_HOST(sv_diag, sv_size);
         for (IdxType i=0; i<sv_num; i++)
             sv_diag[i] = abs(dm_real_res[i*dim+i]); //sv_diag[i] = dm_real_res[i*dim+i];
-
         ValType* sv_diag_scan = NULL;
         SAFE_ALOC_HOST(sv_diag_scan, (sv_num+1)*sizeof(ValType));
         sv_diag_scan[0] = 0;
         for (IdxType i=1; i<sv_num+1; i++)
             sv_diag_scan[i] = sv_diag_scan[i-1]+sv_diag[i-1];
-
-        printf("\n===============  Measurement (qubits=%d, gates=%d, tests=%d) ================\n",
-                n_qubits, n_gates, repetition);
         srand(RAND_SEED);
-        IdxType* res_state = NULL;
-        SAFE_ALOC_HOST(res_state, (repetition*sizeof(IdxType)));
+        IdxType* res_state = (IdxType*)malloc(repetition*sizeof(IdxType));
         memset(res_state, 0, (repetition*sizeof(IdxType)));
         for (unsigned i=0; i<repetition; i++)
         {
@@ -459,15 +454,12 @@ public:
             for (IdxType j=0; j<sv_num; j++)
                 if (sv_diag_scan[j]<=r && r<sv_diag_scan[j+1])
                     res_state[i] = j;
-            printf("Test-%d: ",i);
-            print_binary(res_state[i], n_qubits);
-            printf("\n");
         }
         if ( abs(sv_diag_scan[sv_num] - 1.0) > ERROR_BAR )
             printf("Sum of probability along diag is far from 1.0 with %lf\n", sv_diag_scan[sv_num]);
         SAFE_FREE_HOST(sv_diag);
         SAFE_FREE_HOST(sv_diag_scan);
-        SAFE_FREE_HOST(res_state);
+        return res_state;
     }
     void print_res_sv()
     {

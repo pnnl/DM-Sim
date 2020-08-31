@@ -68,8 +68,10 @@ int main()
     sim.sim();
     
     //Measure
-    sim.measure();
- 
+    auto* res = sim.measure(5);
+    print_measurement(res, 10, 5);
+    delete res; 
+
     return 0;
 }
 

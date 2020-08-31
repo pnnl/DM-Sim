@@ -66,5 +66,9 @@ unmaj(sim, 0, 5, 1)
 sim.upload()
 ## Run the new circuit
 sim.run()
-## Measure, 10 is the repetition or shots
-sim.measure(10)
+## Measure, 10 is the repetition or shots, return a list
+res = sim.measure(10)
+## Print measurement results
+print ("\n===============  Measurement (tests=" + str(len(res)) + ") ================")
+for i in range(len(res)):
+    print ("Test-"+str(i)+": {0:b}".format(res[i]))

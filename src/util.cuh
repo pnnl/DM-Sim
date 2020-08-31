@@ -137,6 +137,17 @@ void print_binary(IdxType v, int width)
     for (int i=width-1; i>=0; i--) putchar('0' + ((v>>i)&1));
 }
 
+void print_measurement(IdxType* res_state, IdxType n_qubits, int repetition)
+{
+    assert(res_state != NULL);
+    printf("\n===============  Measurement (tests=%d) ================\n", repetition);
+    for (int i=0; i<repetition; i++)
+    {
+        printf("Test-%d: ",i);
+        print_binary(res_state[i], n_qubits);
+        printf("\n");
+    }
+}
 
 //======================================== Other ==========================================
 //Swap two pointers
