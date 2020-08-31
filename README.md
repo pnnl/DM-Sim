@@ -49,6 +49,7 @@ DM-Sim (OpenMP) simulates 1M general gates with 15-qubits gate-by-gate in 94 min
 |RY | Y-axis rotation | C3X | 3-controlled X |
 |RZ | Z-axis rotation | C3XSQRTX | 3-controlled sqrt(X) |
 |CZ | Controlled phase | C4X | 4-controlled X |
+|W | W gate  |  RYY | 2-qubit YY rotation |
 |C1 | Arbitrary 1-qubit gate | C2 | Arbitrary 2-qubit gate |
 
 ## Package Structure
