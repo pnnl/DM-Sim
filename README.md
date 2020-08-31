@@ -120,6 +120,9 @@ Then use the following command for compilation:
 ```text
 make 
 ```
+
+The default Python version is Python-2.7. If you are using the simulator in other python version, you can adjust accordingly in the Makefile. Note, if you need Python-3, say Python-3.7, you may need to take out the "-lpython3.7" from the compiler option before make.
+
 ## Execution
 
 DM-Sim requires NVIDIA GPUs for execution. We have tested it on Tesla-P100 (Pascal, CC-6.0), Tesla-V100 (Volta, CC-7.0) and RTX2080 (Turing, CC-7.5). To run on scale-up workstations (e.g., DGX-1 and DGX-2), it needs all the GPUs to be directly connected by NVLink, NVSwitch or NV-SLI for all-to-all communication (when performing adjoint operation when transposing the density matrix)). Therefore, on DGX-1, it can use up to 4 GPUs (despite 8 in total) and provided they are directly interconnected, see our TPDS [Evaluation paper](https://arxiv.org/abs/1903.04611) on GPU interconnect for detail. For scale-out GPU clusters, it requires the support of [GPUDirect-RDMA](https://docs.nvidia.com/cuda/gpudirect-rdma/index.html) for direct GPU-memory access. On the ORNL Summit supercomputer, this can be enabled by *--smpiargs="-gpu"*. See the example [.lsf](src/summit_dmsim.lsf) file.
