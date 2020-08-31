@@ -34,13 +34,13 @@ using func_t = void (*)(const Gate*, const Simulation*, ValType*, ValType*);
 //Simulation runtime, is_forward?
 __global__ void simulation_kernel(Simulation*, bool);
 
-//Current DMSim supported gates: 37
+//Current DMSim supported gates: 38
 enum OP 
 {
     U3, U2, U1, CX, ID, X, Y, Z, H, S, 
     SDG, T, TDG, RX, RY, RZ, CZ, CY, SWAP, CH, 
     CCX, CSWAP, CRX, CRY, CRZ, CU1, CU3, RXX, RZZ, RCCX, 
-    RC3X, C3X, C3SQRTX, C4X, R, SRN, W
+    RC3X, C3X, C3SQRTX, C4X, R, SRN, W, RYY
 };
 
 //Define gate function pointers
@@ -81,6 +81,7 @@ extern __device__ func_t pC4X_OP;
 extern __device__ func_t pR_OP;
 extern __device__ func_t pSRN_OP;
 extern __device__ func_t pW_OP;
+extern __device__ func_t pRYY_OP;
 
 //Gate definition, currently support up to 5 qubit indices and 3 rotation params
 class Gate
@@ -143,6 +144,7 @@ public:
             GATE_BRANCH(R);
             GATE_BRANCH(SRN);
             GATE_BRANCH(W);
+            GATE_BRANCH(RYY);
         }
         cudaSafeCall(cudaMemcpy(gpu, this, sizeof(Gate), cudaMemcpyHostToDevice));
         return gpu;
@@ -381,7 +383,7 @@ public:
     {
         SAFE_FREE_GPU(sim_gpu);
         SAFE_FREE_GPU(circuit_gpu);
-        for (unsigned g=0; g<n_gates; g++)
+        for (unsigned g=0; g<n_gpus; g++)
             SAFE_FREE_GPU(circuit_copy[g]);
         circuit.clear();
         circuit_copy.clear();
@@ -651,6 +653,12 @@ public:
     {
         return new Gate(OP::W, m, 0, 0, 0, 0, 0., 0., 0.);
     }
+    //2-qubit YY rotation
+    static Gate* RYY(ValType theta, IdxType m, IdxType n)
+    {
+        return new Gate(OP::RYY, m, n, 0, 0, 0, theta, 0., 0.);
+    }
+ 
  
 public:
     // n_qubits is the number of qubits
@@ -1606,6 +1614,22 @@ __device__ __inline__ void W_GATE(const Simulation* sim, ValType* dm_real, ValTy
     OP_TAIL;
 }
 
+//============== RYY Gate ================
+//2-qubit YY rotation
+__device__ __inline__ void RYY_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+       const ValType theta, const IdxType a, const IdxType b)
+{
+    RX_GATE(sim, dm_real, dm_imag, PI/2, a);
+    RX_GATE(sim, dm_real, dm_imag, PI/2, b);
+    CX_GATE(sim, dm_real, dm_imag, a, b);
+    RZ_GATE(sim, dm_real, dm_imag, theta, b);
+    CX_GATE(sim, dm_real, dm_imag, a, b);
+    RX_GATE(sim, dm_real, dm_imag, -PI/2, a);
+    RX_GATE(sim, dm_real, dm_imag, -PI/2, b);
+}
+ 
+
+
 
 
 
@@ -1797,6 +1821,11 @@ __device__ void W_OP(const Gate* g, const Simulation* sim, ValType* dm_real, Val
     W_GATE(sim, dm_real, dm_imag, g->qb0); 
 }
 
+__device__ void RYY_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+{
+    RYY_GATE(sim, dm_real, dm_imag, g->theta, g->qb0, g->qb1);
+}
+
 
 
 // ============================ Device Function Pointers ================================
@@ -1837,6 +1866,7 @@ __device__ func_t pC4X_OP = C4X_OP;
 __device__ func_t pR_OP = R_OP;
 __device__ func_t pSRN_OP = SRN_OP;
 __device__ func_t pW_OP = W_OP;
+__device__ func_t pRYY_OP = RYY_OP;
 //=====================================================================================
 
 }; //namespace DMSim

@@ -73,5 +73,6 @@ PYBIND11_MODULE(dmsim_py_mpi_wrapper, m)
         .def_static("R", &Simulation::R)
         .def_static("SRN", &Simulation::SRN)
         .def_static("W", &Simulation::W)
+        .def_static("RYY", &Simulation::RYY)
         ;
 }
