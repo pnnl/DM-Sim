@@ -30,8 +30,10 @@ if (len(sys.argv) != 2):
     print("Call using $python circuit.py n_qubits \n")
     exit()
 
+n_qubits = int(sys.argv[1])
+
 ## Create simulator object
-sim = dmsim_mpi.Simulation(int(sys.argv[1]))
+sim = dmsim_mpi.Simulation(n_qubits)
 
 ## Quantum ripple-carry adder from Cuccaro et al, quant-ph/0410184
 ## Define circuit module functions as below
