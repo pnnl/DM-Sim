@@ -78,4 +78,4 @@ res = sim.measure(10)
 if rank == 0:
     print ("\n===============  Measurement (tests=" + str(len(res)) + ") ================")
     for i in range(len(res)):
-        print ("Test-"+str(i)+": {0:b}".format(res[i]))
+        print ("Test-"+str(i)+": " + "{0:b}".format(res[i]).zfill(n_qubits))

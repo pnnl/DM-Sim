@@ -22,8 +22,11 @@ if (len(sys.argv) != 3):
     print("Call using $python circuit.py n_qubits n_gpus\n")
     exit()
 
+n_qubits = int(sys.argv[1])
+n_gpus = int(sys.argv[2])
+
 ## Create simulator object
-sim = dmsim_omp.Simulation(int(sys.argv[1]), int(sys.argv[2]))
+sim = dmsim_omp.Simulation(n_qubits, n_gpus)
 
 ## Quantum ripple-carry adder from Cuccaro et al, quant-ph/0410184
 ## Define circuit module functions as below
@@ -71,4 +74,4 @@ res = sim.measure(10)
 ## Print measurement results
 print ("\n===============  Measurement (tests=" + str(len(res)) + ") ================")
 for i in range(len(res)):
-    print ("Test-"+str(i)+": {0:b}".format(res[i]))
+    print ("Test-"+str(i)+": " + "{0:b}".format(res[i]).zfill(n_qubits))
