@@ -416,12 +416,15 @@ public:
 
     void clear_circuit()
     {
-        for (unsigned d=0; d<n_gpus; d++)
+        if (sim_gpu != NULL)
         {
-            SAFE_FREE_GPU(sim_gpu[d]);
-            for (unsigned i=0; i<n_gates; i++)
-                SAFE_FREE_GPU(circuit_copy[d][i]);
-            circuit_copy[d].clear();
+            for (unsigned d=0; d<n_gpus; d++)
+            {
+                SAFE_FREE_GPU(sim_gpu[d]);
+                for (unsigned i=0; i<n_gates; i++)
+                    SAFE_FREE_GPU(circuit_copy[d][i]);
+                circuit_copy[d].clear();
+            }
         }
         SAFE_FREE_HOST(sim_gpu);
         SAFE_FREE_GPU(circuit_gpu);
