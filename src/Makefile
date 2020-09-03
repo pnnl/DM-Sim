@@ -21,7 +21,7 @@ FLAGS = -O3 -arch=sm_70 -std=c++11 -rdc=true
 LIBS = -lm
 
 #all: adder_n10_omp dmsim_py_omp_wrapper dmsim_py_mpi_wrapper adder_n10_mpi 
-all: adder_n10_omp 
+all: adder_n10_omp dmsim_py_omp_wrapper
 
 adder_n10_omp: adder_n10_omp.cu gate_omp.cuh config.hpp util.cuh
 	$(CC) $(FLAGS) $(LIBS) -Xcompiler -fopenmp adder_n10_omp.cu -o $@
