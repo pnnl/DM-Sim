@@ -233,6 +233,27 @@ public:
         cudaSafeCall(cudaMemset(dm_imag_buf, 0, dm_size_per_gpu));
     }
 
+    void reset()
+    {
+        clear_circuit();
+
+        memset(dm_real_cpu, 0, dm_size_per_gpu);
+        memset(dm_imag_cpu, 0, dm_size_per_gpu);
+        memset(dm_real_res, 0, dm_size_per_gpu);
+        memset(dm_imag_res, 0, dm_size_per_gpu);
+
+        //Density matrix initial state [0..0] = 1
+        if (i_gpu == 0) dm_real_cpu[0] = 1;
+
+        //GPU side initialization
+        cudaSafeCall(cudaMemcpy(dm_real, dm_real_cpu,
+                    dm_size_per_gpu, cudaMemcpyHostToDevice));
+        cudaSafeCall(cudaMemcpy(dm_imag, dm_imag_cpu,
+                    dm_size_per_gpu, cudaMemcpyHostToDevice));
+        cudaSafeCall(cudaMemset(dm_real_buf, 0, dm_size_per_gpu));
+        cudaSafeCall(cudaMemset(dm_imag_buf, 0, dm_size_per_gpu));
+    }
+
     ~Simulation()
     {
         //Release circuit
@@ -252,6 +273,12 @@ public:
     void append(Gate* g)
     {
         CHECK_NULL_POINTER(g); 
+        assert((g->qb0<n_qubits));
+        assert((g->qb1<n_qubits));
+        assert((g->qb2<n_qubits));
+        assert((g->qb3<n_qubits));
+        assert((g->qb4<n_qubits));
+ 
         //Be careful! PyBind11 will auto-release the object pointed by g, 
         //so we need to creat a new Gate object inside the code
         circuit.push_back(new Gate(*g));
@@ -385,13 +412,15 @@ public:
         SAFE_FREE_GPU(circuit_gpu);
         for (unsigned g=0; g<n_gates; g++)
             SAFE_FREE_GPU(circuit_copy[g]);
+        for (unsigned i=0; i<n_gates; i++)
+            delete circuit[i];
         circuit.clear();
         circuit_copy.clear();
         n_gates = 0;
     }
     IdxType* measure(unsigned repetition=10)
     {
-        IdxType* res_state = (IdxType*)malloc(repetition*sizeof(IdxType));
+        IdxType* res_state = new IdxType[repetition];
         memset(res_state, 0, (repetition*sizeof(IdxType)));
 
         double* sv_diag = NULL;

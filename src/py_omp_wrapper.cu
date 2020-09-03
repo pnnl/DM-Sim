@@ -35,11 +35,13 @@ PYBIND11_MODULE(dmsim_py_omp_wrapper, m)
         .def("upload", &Simulation::upload)
         .def("clear_circuit", &Simulation::clear_circuit)
         .def("run", &Simulation::sim)
-        .def("measure",[](Simulation &s, unsigned repetition) -> py::list&{
+        .def("reset", &Simulation::reset)
+        .def("measure",[](Simulation &s, unsigned repetition) -> py::list{
                 IdxType* m_rtn = s.measure(repetition);
-                py::list* rtn = new py::list();
-                for (unsigned i=0; i<repetition; i++) rtn->append(m_rtn[i]);
-                return *rtn;})
+                py::list rtn;
+                for (unsigned i=0; i<repetition; i++) rtn.append(m_rtn[i]);
+                delete m_rtn;
+                return rtn;})
         .def_static("U3", &Simulation::U3)
         .def_static("U2", &Simulation::U2)
         .def_static("U1", &Simulation::U1)

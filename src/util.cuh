@@ -117,6 +117,11 @@ typedef struct GPU_Timer
         cudaSafeCall( cudaEventCreate(&this->start) );
         cudaSafeCall( cudaEventCreate(&this->stop) );
     }
+    ~GPU_Timer()
+    {
+        cudaSafeCall( cudaEventDestroy(this->start));
+        cudaSafeCall( cudaEventDestroy(this->stop));
+    }
     void start_timer() { cudaSafeCall( cudaEventRecord(this->start) ); }
     void stop_timer() { cudaSafeCall( cudaEventRecord(this->stop) ); }
     double measure()

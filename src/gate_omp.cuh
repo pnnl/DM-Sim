@@ -270,12 +270,41 @@ public:
 
         SAFE_FREE_HOST(circuit_copy);
     }
+    void reset()
+    {
+        clear_circuit();
 
+        memset(dm_real_cpu, 0, dm_size);
+        memset(dm_imag_cpu, 0, dm_size);
+        memset(dm_real_res, 0, dm_size);
+        memset(dm_imag_res, 0, dm_size);
+        //Density matrix initial state [0..0] = 1
+        dm_real_cpu[0] = 1;
+        //GPU side initialization
+        for (unsigned d=0; d<n_gpus; d++)
+        {
+            cudaSafeCall(cudaSetDevice(d));
+            //GPU memory initilization
+            cudaSafeCall(cudaMemcpy(dm_real_ptr[d], &dm_real_cpu[d*dim*m_gpu], 
+                        dm_size_per_gpu, cudaMemcpyHostToDevice));
+            cudaSafeCall(cudaMemcpy(dm_imag_ptr[d], &dm_imag_cpu[d*dim*m_gpu], 
+                        dm_size_per_gpu, cudaMemcpyHostToDevice));
+            cudaSafeCall(cudaMemset(dm_real_buf_ptr[d], 0, dm_size_per_gpu));
+            cudaSafeCall(cudaMemset(dm_imag_buf_ptr[d], 0, dm_size_per_gpu));
+        }
+
+    }
 
     //add a gate to the current circuit
     void append(Gate* g)
     {
         CHECK_NULL_POINTER(g); 
+        assert((g->qb0<n_qubits));
+        assert((g->qb1<n_qubits));
+        assert((g->qb2<n_qubits));
+        assert((g->qb3<n_qubits));
+        assert((g->qb4<n_qubits));
+ 
         //Be careful! PyBind11 will auto-release the object pointed by g, 
         //so we need to creat a new Gate object inside the code
         circuit.push_back(new Gate(*g));
@@ -394,6 +423,8 @@ public:
                             dm_size_per_gpu, cudaMemcpyDeviceToHost));
             }
             cudaSafeCall(cudaDeviceSynchronize());
+            for (unsigned g=0; g<n_gpus; g++) 
+                cudaSafeCall(cudaStreamDestroy(streams[g]));
 
         } //end of OpenMP parallel
 
@@ -412,6 +443,9 @@ public:
                 n_qubits, n_gates, n_gpus, avg_sim_time-avg_comm_time, avg_comm_time, 
                 avg_sim_time, gpu_mem/1024/1024, gpu_mem/1024/1024/n_gpus);
         printf("=====================================\n");
+
+        SAFE_FREE_HOST(comm_times);
+        SAFE_FREE_HOST(sim_times);
     }
 
     void clear_circuit()
@@ -425,6 +459,10 @@ public:
                     SAFE_FREE_GPU(circuit_copy[d][i]);
                 circuit_copy[d].clear();
             }
+        }
+        for (unsigned i=0; i<n_gates; i++)
+        {
+            delete circuit[i];
         }
         SAFE_FREE_HOST(sim_gpu);
         SAFE_FREE_GPU(circuit_gpu);
@@ -449,7 +487,7 @@ public:
         for (IdxType i=1; i<sv_num+1; i++)
             sv_diag_scan[i] = sv_diag_scan[i-1]+sv_diag[i-1];
         srand(RAND_SEED);
-        IdxType* res_state = (IdxType*)malloc(repetition*sizeof(IdxType));
+        IdxType* res_state = new IdxType[repetition];
         memset(res_state, 0, (repetition*sizeof(IdxType)));
         for (unsigned i=0; i<repetition; i++)
         {
