@@ -302,6 +302,7 @@ IBMBackend.get_qasm()
 
 #### [Sriram Krishnamoorthy](https://hpc.pnl.gov/people/sriram/), Pacific Northwest National Laboratory (PNNL)
 
+We are currently collaborating with Microsoft Quantum team on supporting Q# through [QIR](https://devblogs.microsoft.com/qsharp/introducing-quantum-intermediate-representation-qir/). The connection to DM-Sim can be found [here](https://github.com/microsoft/qsharp-language/blob/main/Specifications/QIR/List.md).
 
 
 ## Citation format
@@ -328,7 +329,7 @@ This project is licensed under the BSD License, see [LICENSE](LICENSE) file for 
 
 **PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160**
 
-We thank the SC-20 anonymous reviewers for their feedback and suggestions on our paper. This work was supported by PNNL's *Quantum Algorithms, Software, and Architectures* (QUASAR) LDRD Initiative. The Pacific Northwest National Laboratory (PNNL) is operated by Battelle for the U.S. Department of Energy (DOE) under contract DE-AC05-76RL01830. 
+This project is currently supported by the [Quantum Science Center (QSC)](https://qscience.org/). It was originally supported by PNNL's *Quantum Algorithms, Software, and Architectures* (QUASAR) LDRD Initiative. The Pacific Northwest National Laboratory (PNNL) is operated by Battelle for the U.S. Department of Energy (DOE) under contract DE-AC05-76RL01830. 
 
 ## Contributing
 
