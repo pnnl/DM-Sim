@@ -313,7 +313,7 @@ IBMBackend.get_qasm()
 
 #### [Bo Fang](https://www.pnnl.gov/science/staff/staff_info.asp?staff_num=9511), Pacific Northwest National Laboratory (PNNL)
 
-We are currently collaborating with Microsoft Quantum team (Alan Geller, Bettina Heim, Irina Yatsenko, Guen Prawiroatmodjo, Martin Roetteler) on improving the pipeline from Q# to [QIR](https://devblogs.microsoft.com/qsharp/introducing-quantum-intermediate-representation-qir/) to [DM-Sim](https://github.com/microsoft/qsharp-language/blob/main/Specifications/QIR/List.md).
+We are currently collaborating with Microsoft Quantum team (Alan Geller, Bettina Heim, Irina Yatsenko, Guen Prawiroatmodjo, Martin Roetteler) on improving the pipeline from Q# to [QIR](https://devblogs.microsoft.com/qsharp/introducing-quantum-intermediate-representation-qir/) to [DM-Sim](https://github.com/microsoft/qsharp-language/blob/main/Specifications/QIR/List.md). Many thanks to their strong support.
 
 
 ## Citation format
