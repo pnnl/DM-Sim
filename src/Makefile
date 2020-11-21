@@ -29,7 +29,7 @@ CXX_FLAGS = -std=c++11 -m64 -O3 -I. -I$(QIR_BRIDGE_PUBLIC) -fPIC
 QIR_FLAGS = -I. -I$(QIR_BRIDGE_PUBLIC) -L$(QIR_BRIDGE_BUILD)/lib/QIR -L$(QIR_BRIDGE_BUILD)/lib/Simulators -L$(QIR_BRIDGE_BUILD)/lib/GateDecompositions -L$(QIR_BRIDGE_BUILD)/test/QIR/ -ldefault_gates  -lsimulators -lqir_bridge_qis -lqir_qis -lqir_bridge -lqir_rt --compiler-options -fPIC
 
 
-all: adder_n10_omp dmsim_py_omp_wrapper dmsim_py_mpi_wrapper adder_n10_mpi qir_vqe_mpi
+all: adder_n10_omp dmsim_py_omp_wrapper dmsim_py_mpi_wrapper adder_n10_mpi # qir_vqe_mpi
 
 adder_n10_omp: adder_n10_omp.cu gate_omp.cuh config.hpp util.cuh
 	$(CC) $(FLAGS) $(LIBS) -Xcompiler -fopenmp adder_n10_omp.cu -o $@

@@ -9,8 +9,8 @@ A Density Matrix Quantum Simulator for Single-GPU, Single-Node-Multi-GPUs and Mu
 Latest version: **2.1**
 
 ### Version-2.1 Updates:
- - Support Q# code through [QIR](https://devblogs.microsoft.com/qsharp/introducing-quantum-intermediate-representation-qir/) and Bridge developed by Microsoft quantum team. The DM-Sim project is also listed as one of the [public projects](https://github.com/microsoft/qsharp-language/blob/main/Specifications/QIR/List.md) use QIR. 
- - Enable the dump of current quantum circuits into a file stream.
+ - Support Q# code through [QIR](https://devblogs.microsoft.com/qsharp/introducing-quantum-intermediate-representation-qir/) and Bridge developed by Microsoft quantum team. The DM-Sim project is also listed as one of the [public projects](https://github.com/microsoft/qsharp-language/blob/main/Specifications/QIR/List.md) using QIR to support Q#/QDK. 
+ - Enable the dump of current quantum circuit into a file stream.
 
 
 ### Version-2.0 Updates:
@@ -21,8 +21,6 @@ Latest version: **2.1**
  - Support multi-node cluster execution managed by MPI and mpi4py.
 
 If you're looking for the implementation we described in our SC-20 paper, please see the V1.0 release. DM-Sim is under active development. Please propose any bugs and suggest any features. We will continuously add new features. Questions and suggestions are welcome.
-
-In this new version, a python-API based circuit can be directly launched and executed without the need to recompile (which is the practice in V1.0). This will significantly benefit emerging quantum-classical hybrid algorithms where the quantum circuits are adjusted and executed online guided by classical optimization processes. In the future version we will try to provide Microsoft Q#/QDK support.
 
 ## About DM-Sim
 
