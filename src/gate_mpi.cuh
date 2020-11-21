@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------
 // DM-Sim: Density-Matrix quantum circuit simulator based on GPU clusters
-// Version 2.0
+// Version 2.1
 // ---------------------------------------------------------------------------
 // File: gate.cuh
 // MPI-based implementation of the scale-out DM-Sim gates and 
@@ -19,6 +19,8 @@
 #include <cooperative_groups.h>
 #include <vector>
 #include <mpi.h>
+#include <sstream>
+#include <string>
 
 #include "config.hpp"
 
@@ -42,6 +44,15 @@ enum OP
     CCX, CSWAP, CRX, CRY, CRZ, CU1, CU3, RXX, RZZ, RCCX, 
     RC3X, C3X, C3SQRTX, C4X, R, SRN, W, RYY
 };
+
+//Name of the gate for tracing purpose
+const char *OP_NAMES[] = {
+    "U3", "U2", "U1", "CX", "ID", "X", "Y", "Z", "H", "S", 
+    "SDG", "T", "TDG", "RX", "RY", "RZ", "CZ", "CY", "SWAP", "CH", 
+    "CCX", "CSWAP", "CRX", "CRY", "CRZ", "CU1", "CU3", "RXX", "RZZ", "RCCX", 
+    "RC3X", "C3X", "C3SQRTX", "C4X", "R", "SRN", "W", "RYY"
+};
+
 
 //Define gate function pointers
 extern __device__ func_t pU3_OP;
@@ -154,6 +165,14 @@ public:
     {
         (*(this->op))(this, sim, dm_real, dm_imag);
     }
+    //dump the current circuit
+    void dump(std::stringstream& ss)
+    {
+        ss << OP_NAMES[op_name] << "(" << qb0 << "," << qb1 << "," 
+            << qb2 << "," << qb3 << ","
+            << qb4 << "," << theta << "," 
+            << phi << "," << lambda << ");" << std::endl;
+    }
     //Gate operation
     func_t op;
     //Gate name
@@ -236,7 +255,10 @@ public:
     void reset()
     {
         clear_circuit();
-
+        reset_dm();
+    }
+    void reset_dm()
+    {
         memset(dm_real_cpu, 0, dm_size_per_gpu);
         memset(dm_imag_cpu, 0, dm_size_per_gpu);
         memset(dm_real_res, 0, dm_size_per_gpu);
@@ -296,6 +318,7 @@ public:
         
         for (IdxType t=0; t<n_gates; t++)
         {
+            //circuit[t]->dump();
             Gate* g_gpu = circuit[t]->upload();
             circuit_copy.push_back(g_gpu);
         }
@@ -307,7 +330,16 @@ public:
                     sizeof(Simulation), cudaMemcpyHostToDevice));
         return this;
     }
-
+    //dump the circuit
+    std::string dump()
+    {
+        stringstream ss;
+        for (IdxType t=0; t<n_gates; t++)
+        {
+            circuit[t]->dump(ss);
+        }
+        return ss.str();
+    }
     //start dm simulation
     void sim()
     {
@@ -395,11 +427,13 @@ public:
             avg_comm_time /= (double)n_gpus;
             avg_sim_time /= (double)n_gpus;
 
+#ifdef PRINT_MEA_PER_CIRCUIT
             printf("\n============== DM-Sim ===============\n");
             printf("nqubits:%d, ngates:%d, ngpus:%d, comp:%.3lf ms, comm:%.3lf ms, sim:%.3lf ms, mem:%.3lf MB, mem_per_gpu:%.3lf MB\n",
                     n_qubits, n_gates, n_gpus, avg_sim_time-avg_comm_time, avg_comm_time, 
                     avg_sim_time, gpu_mem/1024/1024, gpu_mem/1024/1024/n_gpus);
             printf("=====================================\n");
+#endif
 
             SAFE_FREE_HOST(comm_times);
             SAFE_FREE_HOST(sim_times);

@@ -1,6 +1,6 @@
 ## ---------------------------------------------------------------------------
 ## DM-Sim: Density-Matrix quantum circuit simulator based on GPU clusters
-## Version 2.0
+## Version 2.1
 ## ---------------------------------------------------------------------------
 ## File: adder_n10_mpi.py
 ## A 10-qubit adder example using Python API using MPI for GPU Cluster.

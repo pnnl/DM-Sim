@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------
 // DM-Sim: Density-Matrix quantum circuit simulator based on GPU clusters
-// Version 2.0
+// Version 2.1
 // ---------------------------------------------------------------------------
 // File: util.cuh
 // Header file in which we defined some utility functions.

@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------
 // DM-Sim: Density-Matrix quantum circuit simulator based on GPU clusters
-// Version 2.0
+// Version 2.1
 // ---------------------------------------------------------------------------
 // File: config.hpp
 // Configuration file in which we define the gate and runtime settings.
@@ -16,6 +16,9 @@
 
 //Error check for all CUDA Runtim-API calls and Kernel check
 #define CUDA_ERROR_CHECK
+
+//Track per circuit execution performance
+//#define PRINT_MEA_PER_CIRCUIT
 
 // ================================= Configurations =====================================
 namespace DMSim 

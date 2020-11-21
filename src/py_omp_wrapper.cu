@@ -1,4 +1,7 @@
 // ---------------------------------------------------------------------------
+// DM-Sim: Density-Matrix quantum circuit simulator based on GPU clusters
+// Version 2.1
+// ---------------------------------------------------------------------------
 // File: dmsim_sin.cuh
 // Python wrapper for the OpenMP implementation 
 //    (single-node-multi-GPUs) of DM-Sim. 
