@@ -19,6 +19,8 @@
 #include <cooperative_groups.h>
 #include <vector>
 #include <omp.h>
+#include <sstream>
+#include <string>
 
 #include "config.hpp"
 
