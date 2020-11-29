@@ -1,20 +1,18 @@
 // ---------------------------------------------------------------------------
-// DM-Sim: Density-Matrix quantum circuit simulator based on GPU clusters
-// Version 2.1
-// ---------------------------------------------------------------------------
-// File: adder_n10_omp.cu
-// A 10-qubit adder example based on OpenMP using C++/CUDA API.
-// For single-node (1 or more GPUs); no inter-GPU communication required.
-// ---------------------------------------------------------------------------
+// DM-Sim: Density-Matrix Quantum Circuit Simulation Environement 
+// Version 2.2
 // Ang Li, Scientist, Pacific Northwest National Laboratory(PNNL), U.S.
 // Homepage: http://www.angliphd.com
 // GitHub repo: http://www.github.com/pnnl/DM-Sim
 // PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
 // BSD Lincese.
 // ---------------------------------------------------------------------------
+// File: adder_n10_cpu_omp.cpp
+// A 10-qubit adder example based on OpenMP using CPU backend.
+// ---------------------------------------------------------------------------
 #include <stdio.h>
-#include "util.cuh"
-#include "gate_omp.cuh"
+#include "util_cpu.h"
+#include "dmsim_cpu_omp.hpp"
 
 //Use the DMSim namespace to enable C++/CUDA APIs
 using namespace DMSim;
@@ -38,10 +36,10 @@ int main()
 //=================================== Initialization =====================================
     srand(RAND_SEED);
     int n_qubits = 10;
-    int n_gpus = 1;
+    int n_cpus = 32;
 
     //Obtain a simulator object
-    Simulation sim(n_qubits, n_gpus);
+    Simulation sim(n_qubits, n_cpus);
 
     //Add the gates to the circuit
     sim.append(Simulation::X(1));
@@ -69,9 +67,9 @@ int main()
     
     //Measure
     auto* res = sim.measure(5);
-    print_measurement(res, 10, 5);
+    print_measurement(res, n_qubits, 5);
     delete res; 
-
+    
     return 0;
 }
 

@@ -1,10 +1,9 @@
 // ---------------------------------------------------------------------------
-// DM-Sim: Density-Matrix quantum circuit simulator based on GPU clusters
-// Version 2.1
+// DM-Sim: Density-Matrix quantum circuit simulator
+// Version 2.2
 // ---------------------------------------------------------------------------
-// File: gate.cuh
-// MPI-based implementation of the scale-out DM-Sim gates and 
-// simulation runtime.
+// File: gate_cpu_mpi.cuh
+// MPI based CPU implementation of DM-Sim (with AVX-512 support).
 // ---------------------------------------------------------------------------
 // Ang Li, Scientist, Pacific Northwest National Laboratory(PNNL), U.S.
 // Homepage: http://www.angliphd.com
@@ -12,29 +11,34 @@
 // PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
 // BSD Lincese.
 // ---------------------------------------------------------------------------
-#ifndef GATE_MPI_CUH
-#define GATE_MPI_CUH
+
+#ifndef DMSIM_CPU_MPI_CUH
+#define DMSIM_CPU_MPI_CUH
 
 #include <assert.h>
-#include <cooperative_groups.h>
 #include <vector>
 #include <mpi.h>
 #include <sstream>
 #include <string>
+#include <math.h>
+#include <string.h>
+#include <cstdlib>
+
+#include <immintrin.h>
+//#include <immintrin.h>
 
 #include "config.hpp"
 
 namespace DMSim
 {
 
-using namespace cooperative_groups;
 using namespace std;
 class Gate;
 class Simulation;
-using func_t = void (*)(const Gate*, const Simulation*, ValType*, ValType*);
+using func_t =void (*)(const Gate*, const Simulation*, ValType*, ValType*);
 
 //Simulation runtime, is_forward?
-__global__ void simulation_kernel(Simulation*, bool);
+void simulation_kernel(Simulation*, bool);
 
 //Current DMSim supported gates: 38
 enum OP 
@@ -53,46 +57,45 @@ const char *OP_NAMES[] = {
     "RC3X", "C3X", "C3SQRTX", "C4X", "R", "SRN", "W", "RYY"
 };
 
-
 //Define gate function pointers
-extern __device__ func_t pU3_OP;
-extern __device__ func_t pU2_OP;
-extern __device__ func_t pU1_OP;
-extern __device__ func_t pCX_OP;
-extern __device__ func_t pID_OP;
-extern __device__ func_t pX_OP;
-extern __device__ func_t pY_OP;
-extern __device__ func_t pZ_OP;
-extern __device__ func_t pH_OP;
-extern __device__ func_t pS_OP;
-extern __device__ func_t pSDG_OP;
-extern __device__ func_t pT_OP;
-extern __device__ func_t pTDG_OP;
-extern __device__ func_t pRX_OP;
-extern __device__ func_t pRY_OP;
-extern __device__ func_t pRZ_OP;
-extern __device__ func_t pCZ_OP;
-extern __device__ func_t pCY_OP;
-extern __device__ func_t pSWAP_OP;
-extern __device__ func_t pCH_OP;
-extern __device__ func_t pCCX_OP;
-extern __device__ func_t pCSWAP_OP;
-extern __device__ func_t pCRX_OP;
-extern __device__ func_t pCRY_OP;
-extern __device__ func_t pCRZ_OP;
-extern __device__ func_t pCU1_OP;
-extern __device__ func_t pCU3_OP;
-extern __device__ func_t pRXX_OP;
-extern __device__ func_t pRZZ_OP;
-extern __device__ func_t pRCCX_OP;
-extern __device__ func_t pRC3X_OP;
-extern __device__ func_t pC3X_OP;
-extern __device__ func_t pC3SQRTX_OP;
-extern __device__ func_t pC4X_OP;
-extern __device__ func_t pR_OP;
-extern __device__ func_t pSRN_OP;
-extern __device__ func_t pW_OP;
-extern __device__ func_t pRYY_OP;
+extern  func_t pU3_OP;
+extern  func_t pU2_OP;
+extern  func_t pU1_OP;
+extern  func_t pCX_OP;
+extern  func_t pID_OP;
+extern  func_t pX_OP;
+extern  func_t pY_OP;
+extern  func_t pZ_OP;
+extern  func_t pH_OP;
+extern  func_t pS_OP;
+extern  func_t pSDG_OP;
+extern  func_t pT_OP;
+extern  func_t pTDG_OP;
+extern  func_t pRX_OP;
+extern  func_t pRY_OP;
+extern  func_t pRZ_OP;
+extern  func_t pCZ_OP;
+extern  func_t pCY_OP;
+extern  func_t pSWAP_OP;
+extern  func_t pCH_OP;
+extern  func_t pCCX_OP;
+extern  func_t pCSWAP_OP;
+extern  func_t pCRX_OP;
+extern  func_t pCRY_OP;
+extern  func_t pCRZ_OP;
+extern  func_t pCU1_OP;
+extern  func_t pCU3_OP;
+extern  func_t pRXX_OP;
+extern  func_t pRZZ_OP;
+extern  func_t pRCCX_OP;
+extern  func_t pRC3X_OP;
+extern  func_t pC3X_OP;
+extern  func_t pC3SQRTX_OP;
+extern  func_t pC4X_OP;
+extern  func_t pR_OP;
+extern  func_t pSRN_OP;
+extern  func_t pW_OP;
+extern  func_t pRYY_OP;
 
 //Gate definition, currently support up to 5 qubit indices and 3 rotation params
 class Gate
@@ -107,15 +110,13 @@ public:
 
     ~Gate() {}
 
-    //upload to a specific GPU
     Gate* upload() 
     {
-        cudaSafeCall(cudaSetDevice(0));
-        Gate* gpu;
-        SAFE_ALOC_GPU(gpu, sizeof(Gate)); 
+        Gate* local_copy;
+        SAFE_ALOC_HOST(local_copy, sizeof(Gate)); 
 
 #define GATE_BRANCH(GATE) case GATE: \
-    cudaSafeCall(cudaMemcpyFromSymbol(&op, p ## GATE ## _OP, sizeof(func_t))); break;
+    this->op = p ## GATE ## _OP; break;
         switch (op_name)
         {
             GATE_BRANCH(U3);
@@ -157,16 +158,17 @@ public:
             GATE_BRANCH(W);
             GATE_BRANCH(RYY);
         }
-        cudaSafeCall(cudaMemcpy(gpu, this, sizeof(Gate), cudaMemcpyHostToDevice));
-        return gpu;
+        memcpy(local_copy, this, sizeof(Gate));
+        return local_copy;
     }
-    //applying the embedded gate operation on GPU side
-    __device__ void exe_op(Simulation* sim, ValType* dm_real, ValType* dm_imag)
+
+    //applying the embedded gate operation on cpu side
+    void exe_op(Simulation* sim, ValType* dm_real, ValType* dm_imag)
     {
         (*(this->op))(this, sim, dm_real, dm_imag);
     }
     //dump the current circuit
-    void dump(std::stringstream& ss)
+   void dump(std::stringstream& ss)
     {
         ss << OP_NAMES[op_name] << "(" << qb0 << "," << qb1 << "," 
             << qb2 << "," << qb3 << ","
@@ -197,59 +199,54 @@ public:
         n_qubits(_n_qubits), 
         dim((IdxType)1<<(n_qubits)), 
         half_dim((IdxType)1<<(n_qubits-1)),
-        gpu_mem(0), 
+        cpu_mem(0), 
         n_gates(0), 
         dm_num(dim*dim), 
         dm_size(dm_num*(IdxType)sizeof(ValType)),
-        circuit_gpu(NULL),
-        sim_gpu(NULL)
+        circuit_cpu(NULL),
+        sim_cpu(NULL)
     {
-        //always be 0 since 1-MPI maps to 1-GPU
-        cudaSafeCall(cudaSetDevice(0));
         int mpi_size;
         int mpi_rank;
         
         MPI_Comm_size(comm_global, &mpi_size);
         MPI_Comm_rank(comm_global, &mpi_rank);
-        n_gpus = mpi_size;
-        i_gpu = mpi_rank;
-        
-        gpu_scale = floor(log((double)n_gpus+0.5)/log(2.0));
-        lg2_m_gpu = n_qubits-gpu_scale;
-        m_gpu = ((IdxType)1<<(lg2_m_gpu));
-        n_tile = (m_gpu+TILE-1)/TILE;
-        dm_size_per_gpu = dm_size/n_gpus;
+        n_cpus = mpi_size;
+        i_cpu = mpi_rank;
+  
+        cpu_scale = floor(log((double)n_cpus+0.5)/log(2.0));
+        lg2_m_cpu = n_qubits-cpu_scale;
+        m_cpu = ((IdxType)1<<(lg2_m_cpu));
+        n_tile = (m_cpu+TILE-1)/TILE;
+        dm_size_per_cpu = dm_size/n_cpus;
 
-        //CPU side initialization
-        assert(is_power_of_2(n_gpus));
-        assert(dim % n_gpus == 0);
+        assert(is_power_of_2(n_cpus));
+        assert(dim % n_cpus == 0);
 
-        SAFE_ALOC_HOST(dm_real_cpu, dm_size_per_gpu);
-        SAFE_ALOC_HOST(dm_imag_cpu, dm_size_per_gpu);
-        SAFE_ALOC_HOST(dm_real_res, dm_size_per_gpu);
-        SAFE_ALOC_HOST(dm_imag_res, dm_size_per_gpu);
+        SAFE_ALOC_HOST(dm_real_cpu, dm_size_per_cpu);
+        SAFE_ALOC_HOST(dm_imag_cpu, dm_size_per_cpu);
+        SAFE_ALOC_HOST(dm_real_res, dm_size_per_cpu);
+        SAFE_ALOC_HOST(dm_imag_res, dm_size_per_cpu);
+        cpu_mem += dm_size_per_cpu*4;
 
-        memset(dm_real_cpu, 0, dm_size_per_gpu);
-        memset(dm_imag_cpu, 0, dm_size_per_gpu);
-        memset(dm_real_res, 0, dm_size_per_gpu);
-        memset(dm_imag_res, 0, dm_size_per_gpu);
+        memset(dm_real_cpu, 0, dm_size_per_cpu);
+        memset(dm_imag_cpu, 0, dm_size_per_cpu);
+        memset(dm_real_res, 0, dm_size_per_cpu);
+        memset(dm_imag_res, 0, dm_size_per_cpu);
         //Density matrix initial state [0..0] = 1
-        if (i_gpu == 0) dm_real_cpu[0] = 1;
+        if (i_cpu == 0) dm_real_cpu[0] = 1.0;
 
-        //GPU memory allocation
-        SAFE_ALOC_GPU(dm_real, dm_size_per_gpu);
-        SAFE_ALOC_GPU(dm_imag, dm_size_per_gpu);
-        SAFE_ALOC_GPU(dm_real_buf, dm_size_per_gpu);
-        SAFE_ALOC_GPU(dm_imag_buf, dm_size_per_gpu);
-        gpu_mem += dm_size_per_gpu*4;
+        SAFE_ALOC_HOST(dm_real, dm_size_per_cpu);
+        SAFE_ALOC_HOST(dm_imag, dm_size_per_cpu);
+        SAFE_ALOC_HOST(dm_real_buf, dm_size_per_cpu);
+        SAFE_ALOC_HOST(dm_imag_buf, dm_size_per_cpu);
+        cpu_mem += dm_size_per_cpu*4;
 
-        //GPU memory initilization
-        cudaSafeCall(cudaMemcpy(dm_real, dm_real_cpu,
-                    dm_size_per_gpu, cudaMemcpyHostToDevice));
-        cudaSafeCall(cudaMemcpy(dm_imag, dm_imag_cpu,
-                    dm_size_per_gpu, cudaMemcpyHostToDevice));
-        cudaSafeCall(cudaMemset(dm_real_buf, 0, dm_size_per_gpu));
-        cudaSafeCall(cudaMemset(dm_imag_buf, 0, dm_size_per_gpu));
+        //cpu memory initilization
+        memcpy(dm_real, dm_real_cpu, dm_size_per_cpu);
+        memcpy(dm_imag, dm_imag_cpu, dm_size_per_cpu);
+        memset(dm_real_buf, 0, dm_size_per_cpu);
+        memset(dm_imag_buf, 0, dm_size_per_cpu);
     }
 
     void reset()
@@ -257,40 +254,41 @@ public:
         clear_circuit();
         reset_dm();
     }
+
     void reset_dm()
     {
-        memset(dm_real_cpu, 0, dm_size_per_gpu);
-        memset(dm_imag_cpu, 0, dm_size_per_gpu);
-        memset(dm_real_res, 0, dm_size_per_gpu);
-        memset(dm_imag_res, 0, dm_size_per_gpu);
-
+        memset(dm_real_cpu, 0, dm_size_per_cpu);
+        memset(dm_imag_cpu, 0, dm_size_per_cpu);
+        memset(dm_real_res, 0, dm_size_per_cpu);
+        memset(dm_imag_res, 0, dm_size_per_cpu);
         //Density matrix initial state [0..0] = 1
-        if (i_gpu == 0) dm_real_cpu[0] = 1;
-
-        //GPU side initialization
-        cudaSafeCall(cudaMemcpy(dm_real, dm_real_cpu,
-                    dm_size_per_gpu, cudaMemcpyHostToDevice));
-        cudaSafeCall(cudaMemcpy(dm_imag, dm_imag_cpu,
-                    dm_size_per_gpu, cudaMemcpyHostToDevice));
-        cudaSafeCall(cudaMemset(dm_real_buf, 0, dm_size_per_gpu));
-        cudaSafeCall(cudaMemset(dm_imag_buf, 0, dm_size_per_gpu));
+        if (i_cpu == 0) dm_real_cpu[0] = 1;
+        //cpu side initialization
+        
+        memcpy(dm_real, dm_real_cpu, dm_size_per_cpu);
+        memcpy(dm_imag, dm_imag_cpu, dm_size_per_cpu);
+        memset(dm_real_buf, 0, dm_size_per_cpu);
+        memset(dm_imag_buf, 0, dm_size_per_cpu);
     }
 
     ~Simulation()
     {
         //Release circuit
         clear_circuit();
-        //Release for GPU side
-        SAFE_FREE_GPU(dm_real);
-        SAFE_FREE_GPU(dm_imag);
-        SAFE_FREE_GPU(dm_real_buf);
-        SAFE_FREE_GPU(dm_imag_buf);
+        //Release for cpu side
+        
+        SAFE_FREE_HOST(dm_real);
+        SAFE_FREE_HOST(dm_imag);
+        SAFE_FREE_HOST(dm_real_buf);
+        SAFE_FREE_HOST(dm_imag_buf);
+
         //Release for CPU side
         SAFE_FREE_HOST(dm_real_cpu);
         SAFE_FREE_HOST(dm_imag_cpu);
         SAFE_FREE_HOST(dm_real_res);
         SAFE_FREE_HOST(dm_imag_res);
     }
+    
     //add a gate to the current circuit
     void append(Gate* g)
     {
@@ -300,7 +298,7 @@ public:
         assert((g->qb2<n_qubits));
         assert((g->qb3<n_qubits));
         assert((g->qb4<n_qubits));
- 
+
         //Be careful! PyBind11 will auto-release the object pointed by g, 
         //so we need to creat a new Gate object inside the code
         circuit.push_back(new Gate(*g));
@@ -310,24 +308,20 @@ public:
     {
         assert(n_gates == circuit.size());
         //Should be null after calling clear_circuit()
-        assert(circuit_gpu == NULL);
-        assert(sim_gpu == NULL);
+        assert(circuit_cpu == NULL);
+        assert(sim_cpu == NULL);
 
-        //std::cout << "DM-Sim:" << n_gates 
-        //<< "gates uploaded to GPU for execution!" << std::endl;
-        
         for (IdxType t=0; t<n_gates; t++)
         {
             //circuit[t]->dump();
-            Gate* g_gpu = circuit[t]->upload();
-            circuit_copy.push_back(g_gpu);
+            Gate* g_cpu = circuit[t]->upload();
+            circuit_copy.push_back(g_cpu);
         }
-        SAFE_ALOC_GPU(circuit_gpu, n_gates*sizeof(Gate*));
-        cudaSafeCall(cudaMemcpy(circuit_gpu, circuit_copy.data(), 
-                    n_gates*sizeof(Gate*), cudaMemcpyHostToDevice));
-        SAFE_ALOC_GPU(sim_gpu, sizeof(Simulation));
-        cudaSafeCall(cudaMemcpy(sim_gpu, this, 
-                    sizeof(Simulation), cudaMemcpyHostToDevice));
+        SAFE_ALOC_HOST(circuit_cpu, n_gates*sizeof(Gate*));
+        memcpy(circuit_cpu, circuit_copy.data(), n_gates*sizeof(Gate*));
+        SAFE_ALOC_HOST(sim_cpu, sizeof(Simulation));
+        memcpy(sim_cpu, this, sizeof(Simulation));
+
         return this;
     }
     //dump the circuit
@@ -340,61 +334,45 @@ public:
         }
         return ss.str();
     }
+
     //start dm simulation
     void sim()
     {
-        cudaSafeCall(cudaSetDevice(0));
         double* sim_times;
         double* comm_times;
-        if (i_gpu == 0)
+        if (i_cpu == 0)
         {
-            SAFE_ALOC_HOST(sim_times, sizeof(double)*n_gpus);
-            memset(sim_times, 0, sizeof(double)*n_gpus);
-            SAFE_ALOC_HOST(comm_times, sizeof(double)*n_gpus);
-            memset(comm_times, 0, sizeof(double)*n_gpus);
+            SAFE_ALOC_HOST(sim_times, sizeof(double)*n_cpus);
+            memset(sim_times, 0, sizeof(double)*n_cpus);
+            SAFE_ALOC_HOST(comm_times, sizeof(double)*n_cpus);
+            memset(comm_times, 0, sizeof(double)*n_cpus);
         }
-        gpu_timer sim_timer;
-        gpu_timer comm_timer;
+        cpu_timer sim_timer;
+        cpu_timer comm_timer;
 
-        dim3 gridDim(1,1,1);
-        cudaDeviceProp deviceProp;
-        //Check the property of local GPU
-        cudaSafeCall(cudaGetDeviceProperties(&deviceProp, 0));
-        int numBlocksPerSm;
-        cudaSafeCall(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm, 
-                    simulation_kernel, THREADS_PER_BLOCK, 0));
-        gridDim.x = numBlocksPerSm * deviceProp.multiProcessorCount;
         bool isforward = true;
-        void* args[] = {&sim_gpu, &isforward};
-        cudaSafeCall(cudaDeviceSynchronize());
         MPI_Barrier(MPI_COMM_WORLD);
 
         //Forward Pass
         sim_timer.start_timer();
-        cudaLaunchCooperativeKernel((void*)simulation_kernel,gridDim,
-                THREADS_PER_BLOCK,args,0);
-        cudaSafeCall(cudaDeviceSynchronize());
-        MPI_Barrier(MPI_COMM_WORLD);
+        simulation_kernel(sim_cpu, isforward);
 
         //If ValType is not 8 bytes, the communication data type needs to adjust accordingly
         assert(sizeof(double) == sizeof(ValType));
         comm_timer.start_timer();
 
         //All2All: In(dm_real_buf, dm_imag_buf) => Out(dm_real, dm_imag)
-        MPI_Alltoall(dm_real_buf, m_gpu*m_gpu, MPI_DOUBLE,
-                dm_real, m_gpu*m_gpu, MPI_DOUBLE, MPI_COMM_WORLD);
-        MPI_Alltoall(dm_imag_buf, m_gpu*m_gpu, MPI_DOUBLE,
-                dm_imag, m_gpu*m_gpu, MPI_DOUBLE, MPI_COMM_WORLD);
+        MPI_Alltoall(dm_real_buf, m_cpu*m_cpu, MPI_DOUBLE,
+                dm_real, m_cpu*m_cpu, MPI_DOUBLE, MPI_COMM_WORLD);
+        MPI_Alltoall(dm_imag_buf, m_cpu*m_cpu, MPI_DOUBLE,
+                dm_imag, m_cpu*m_cpu, MPI_DOUBLE, MPI_COMM_WORLD);
 
         comm_timer.stop_timer();
         MPI_Barrier(MPI_COMM_WORLD);
 
         //Backward Pass
         isforward = false;
-        cudaLaunchCooperativeKernel((void*)simulation_kernel,gridDim,THREADS_PER_BLOCK,args,0);
-        
-        cudaSafeCall(cudaDeviceSynchronize());
-        MPI_Barrier(MPI_COMM_WORLD);
+        simulation_kernel(sim_cpu, isforward);
         sim_timer.stop_timer();
 
         double sim_time = sim_timer.measure();
@@ -403,76 +381,85 @@ public:
         MPI_Barrier(MPI_COMM_WORLD);
 
         MPI_Gather(&comm_time, 1, MPI_DOUBLE,
-                &comm_times[i_gpu], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+                &comm_times[i_cpu], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
         MPI_Gather(&sim_time, 1, MPI_DOUBLE,
-                &sim_times[i_gpu], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+                &sim_times[i_cpu], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-        cudaSafeCall(cudaMemcpy(dm_real_res, dm_real, 
-                    dm_size_per_gpu, cudaMemcpyDeviceToHost));
-        cudaSafeCall(cudaMemcpy(dm_imag_res, dm_imag, 
-                    dm_size_per_gpu, cudaMemcpyDeviceToHost));
-        cudaSafeCall(cudaDeviceSynchronize());
+        memcpy(dm_real_res, dm_real, dm_size_per_cpu);
+        memcpy(dm_imag_res, dm_imag, dm_size_per_cpu);
+
         MPI_Barrier(MPI_COMM_WORLD);
 
-        if (i_gpu ==0)
+        if (i_cpu == 0)
         {
             double avg_comm_time = 0;
             double avg_sim_time = 0;
-            
-            for (unsigned d=0; d<n_gpus; d++)
+
+            for (unsigned d=0; d<n_cpus; d++)
             {
                 avg_comm_time += comm_times[d];
                 avg_sim_time += sim_times[d];
             }
-            avg_comm_time /= (double)n_gpus;
-            avg_sim_time /= (double)n_gpus;
+
+            avg_comm_time /= (double)n_cpus;
+            avg_sim_time /= (double)n_cpus;
 
 #ifdef PRINT_MEA_PER_CIRCUIT
-            printf("\n============== DM-Sim ===============\n");
-            printf("nqubits:%d, ngates:%d, ngpus:%d, comp:%.3lf ms, comm:%.3lf ms, sim:%.3lf ms, mem:%.3lf MB, mem_per_gpu:%.3lf MB\n",
-                    n_qubits, n_gates, n_gpus, avg_sim_time-avg_comm_time, avg_comm_time, 
-                    avg_sim_time, gpu_mem/1024/1024, gpu_mem/1024/1024/n_gpus);
-            printf("=====================================\n");
+        printf("\n============== DM-Sim ===============\n");
+        printf("nqubits:%d, ngates:%d, ncores:%d, comp:%.3lf ms, comm:%.3lf ms, sim:%.3lf ms, mem:%.3lf MB, mem_per_cpu:%.3lf MB\n",
+                n_qubits, n_gates, n_cpus, avg_sim_time-avg_comm_time, avg_comm_time, 
+                avg_sim_time, cpu_mem/1024/1024, cpu_mem/1024/1024/n_cpus);
+        printf("=====================================\n");
 #endif
 
-            SAFE_FREE_HOST(comm_times);
-            SAFE_FREE_HOST(sim_times);
+        SAFE_FREE_HOST(comm_times);
+        SAFE_FREE_HOST(sim_times);
         }
     }
 
     void clear_circuit()
     {
-        SAFE_FREE_GPU(sim_gpu);
-        SAFE_FREE_GPU(circuit_gpu);
-        for (unsigned g=0; g<n_gates; g++)
-            SAFE_FREE_GPU(circuit_copy[g]);
-        for (unsigned i=0; i<n_gates; i++)
-            delete circuit[i];
-        circuit.clear();
-        circuit_copy.clear();
-        n_gates = 0;
-    }
-    IdxType* measure(unsigned repetition=10)
-    {
-        IdxType* res_state = new IdxType[repetition];
-        memset(res_state, 0, (repetition*sizeof(IdxType)));
+       SAFE_FREE_HOST(sim_cpu);
+       SAFE_FREE_HOST(circuit_cpu);
+       
+       if (circuit_copy.size() != 0)
+           for (unsigned i=0; i<n_gates; i++)
+               SAFE_FREE_HOST(circuit_copy[i]);
+       for (unsigned i=0; i<n_gates; i++)
+           if (circuit[i] != NULL)
+               delete circuit[i];
+       circuit.clear();
+       circuit_copy.clear();
+       
+       n_gates = 0;
+       dm_real = NULL;
+       dm_imag = NULL;
+       dm_real_buf = NULL;
+       dm_imag_buf = NULL;
+   }
+   IdxType* measure(unsigned repetition=10)
+   {
 
-        double* sv_diag = NULL;
-        if (i_gpu == 0) SAFE_ALOC_HOST(sv_diag, dim*sizeof(ValType));
-        IdxType sv_num_per_GPU = m_gpu;
-        IdxType sv_size_per_GPU = sv_num_per_GPU * sizeof(ValType);
-        double* sv_diag_per_gpu = NULL;
-        SAFE_ALOC_HOST(sv_diag_per_gpu, sv_size_per_GPU);
-        for (IdxType i=0; i<sv_num_per_GPU; i++)
-            sv_diag_per_gpu[i] = abs(dm_real_res[i*dim+(i_gpu*m_gpu+i)]);
+       IdxType* res_state = new IdxType[repetition];
+       memset(res_state, 0, (repetition*sizeof(IdxType)));
+       
+       double* sv_diag = NULL;
+       if (i_cpu == 0) SAFE_ALOC_HOST(sv_diag, dim*sizeof(ValType));
+
+       IdxType sv_num_per_CPU = m_cpu;
+       IdxType sv_size_per_CPU = sv_num_per_CPU * sizeof(ValType);
+       double* sv_diag_per_cpu = NULL;
+       SAFE_ALOC_HOST(sv_diag_per_cpu, sv_size_per_CPU);
+        for (IdxType i=0; i<sv_num_per_CPU; i++)
+            sv_diag_per_cpu[i] = fabs(dm_real_res[i*dim+(i_cpu*m_cpu+i)]);
 
         MPI_Barrier(MPI_COMM_WORLD);
-        assert(sizeof(ValType)==sizeof(ValType));
-        MPI_Gather(sv_diag_per_gpu, sv_num_per_GPU, MPI_DOUBLE,
-                &sv_diag[i_gpu*sv_num_per_GPU], sv_num_per_GPU, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+        assert(sizeof(ValType)==sizeof(double));
+        MPI_Gather(sv_diag_per_cpu, sv_num_per_CPU, MPI_DOUBLE,
+                &sv_diag[i_cpu*sv_num_per_CPU], sv_num_per_CPU, MPI_DOUBLE, 0, MPI_COMM_WORLD);
         MPI_Barrier(MPI_COMM_WORLD);
 
-        if (i_gpu == 0)
+        if (i_cpu == 0)
         {
             IdxType sv_num = dim;
             ValType* sv_diag_scan = NULL;
@@ -481,7 +468,6 @@ public:
             for (unsigned i=1; i<sv_num+1; i++)
                 sv_diag_scan[i] = sv_diag_scan[i-1]+sv_diag[i-1];
             srand(RAND_SEED);
-
             for (unsigned i=0; i<repetition; i++)
             {
                 ValType r = (ValType)rand()/(ValType)RAND_MAX;
@@ -490,12 +476,13 @@ public:
                         res_state[i] = j;
             }
             //assert( abs(sv_diag_scan[sv_num] - 1.0) < ERROR_BAR);
-            if ( abs(sv_diag_scan[sv_num] - 1.0) > ERROR_BAR )
+            if ( fabs(sv_diag_scan[sv_num] - 1.0) > ERROR_BAR )
                 printf("Sum of probability along diag is large with %lf\n", sv_diag_scan[sv_num]);
             SAFE_FREE_HOST(sv_diag_scan);
             SAFE_FREE_HOST(sv_diag);
         }
-        SAFE_FREE_HOST(sv_diag_per_gpu);
+ 
+        SAFE_FREE_HOST(sv_diag_per_cpu);
         MPI_Barrier(MPI_COMM_WORLD);
         //If IdxType changes to unsigned long long, should use MPI_UNSIGNED_LONG_LONG here
         assert(sizeof(IdxType)==sizeof(unsigned));
@@ -503,8 +490,9 @@ public:
         MPI_Barrier(MPI_COMM_WORLD);
         
         return res_state;
-    }
-    void print_res_sv()
+    } 
+
+   void print_res_sv()
     {
         printf("----- Real SV ------\n");
         for (IdxType i=0; i<dim; i++) 
@@ -515,7 +503,7 @@ public:
             printf("%lf ", dm_imag_res[i*dim+i]);
         printf("\n");
     }
-    void print_res_dm()
+   void print_res_dm()
     {
         printf("----- Real DM------\n");
         for (IdxType i=0; i<dim; i++) 
@@ -727,19 +715,19 @@ public:
 public:
     // n_qubits is the number of qubits
     const IdxType n_qubits;
-    // gpu_scale is 2^x of the number of GPUs, e.g., with 8 GPUs the gpu_scale is 3 (2^3=8)
-    IdxType gpu_scale;
-    IdxType n_gpus;
-    IdxType i_gpu;
+    // cpu_scale is 2^x of the number of cpus, e.g., with 8 cpus the cpu_scale is 3 (2^3=8)
+    IdxType cpu_scale;
+    IdxType n_cpus;
+    IdxType i_cpu;
     IdxType dim;
     IdxType half_dim;
-    IdxType lg2_m_gpu;
-    IdxType m_gpu;
+    IdxType lg2_m_cpu;
+    IdxType m_cpu;
     IdxType n_tile;
-
+    
     const IdxType dm_num;
     const IdxType dm_size;
-    IdxType dm_size_per_gpu;
+    IdxType dm_size_per_cpu;
 
     IdxType n_gates;
     //CPU arrays
@@ -748,84 +736,90 @@ public:
     ValType* dm_real_res;
     ValType* dm_imag_res;
 
-    //GPU arrays
+    //cpu arrays, they are used as alias of particular pointers
     ValType* dm_real;
     ValType* dm_imag;
     ValType* dm_real_buf;
     ValType* dm_imag_buf;
     
-    ValType gpu_mem;
+    ValType cpu_mem;
+    //hold the CPU-side gates
     vector<Gate*> circuit;
-    //for freeing GPU-side gates in clear(), otherwise there can be GPU memory leak
+    //for freeing cpu-side gates in clear(), otherwise there can be cpu memory leak
     vector<Gate*> circuit_copy;
-    Gate** circuit_gpu;
-
-    Simulation* sim_gpu;
+    //hold the cpu-side gates
+    Gate** circuit_cpu;
+    //hold the cpu-side simulator instances
+    Simulation* sim_cpu;
     MPI_Comm comm_global;
 };
 
-__device__ void circuit(Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void circuit(Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     for (IdxType t=0; t<(sim->n_gates); t++)
     {
-        ((sim->circuit_gpu)[t])->exe_op(sim, dm_real, dm_imag);
+        ((sim->circuit_cpu)[t])->exe_op(sim, dm_real, dm_imag);
     }
 }
 
 //Blockwise transpose via shared memory
-__device__ __inline__ void block_transpose(Simulation* sim, ValType* dm_real, ValType* dm_imag, 
+void block_transpose(Simulation* sim, ValType* dm_real, ValType* dm_imag, 
         const ValType* real_buf, const ValType* imag_buf)
 {
-    __shared__ ValType smem_real[TILE][TILE+1];
-    __shared__ ValType smem_imag[TILE][TILE+1];
-    IdxType tlx = threadIdx.x % TILE;
-    IdxType tly = threadIdx.x / TILE;
-    for (IdxType bid = blockIdx.x; bid < (sim->n_tile)*(sim->n_tile)*(sim->n_gpus); 
-            bid += gridDim.x)
+    for (IdxType bid = 0; bid < (sim->n_tile)*(sim->n_tile)*(sim->n_cpus); 
+            bid += 1)
     {
         IdxType bz = bid / ((sim->n_tile) * (sim->n_tile)); 
         IdxType by = (bid % ((sim->n_tile)*(sim->n_tile))) / (sim->n_tile);
         IdxType bx = bid % (sim->n_tile);
-        IdxType tx = bx * TILE + tlx;
-        IdxType ty = by * TILE + tly;
 
-        if ((tlx < (sim->m_gpu)) && (tly < (sim->m_gpu)))
+        ValType smem_real[TILE][TILE] = {0};
+        ValType smem_imag[TILE][TILE] = {0};
+
+        for (IdxType tid = 0; tid < THREADS_PER_BLOCK; tid++)
         {
-            IdxType in_idx = ty*(sim->dim)+bz*(sim->m_gpu)+tx;
-            smem_real[tly][tlx] = real_buf[in_idx];
-            smem_imag[tly][tlx] = -imag_buf[in_idx];
-        }
-        __syncthreads(); //The two ifs cannot merge, looks like a cuda bug on Volta GPU
-        if ((tlx < (sim->m_gpu)) && (tly < (sim->m_gpu)))
-        {
-            IdxType out_idx = (bx*TILE+tly)*(sim->dim)+ bz*(sim->m_gpu) + by*TILE+tlx;
-            dm_real[out_idx] = smem_real[tlx][tly];
-            dm_imag[out_idx] = smem_imag[tlx][tly];
-        }
-    } 
+            IdxType tlx = tid % TILE;
+            IdxType tly = tid / TILE;
+
+            IdxType tx = bx * TILE + tlx;
+            IdxType ty = by * TILE + tly;
+
+            if ((tlx < (sim->m_cpu)) && (tly < (sim->m_cpu)))
+            {
+                IdxType in_idx = ty*(sim->dim)+bz*(sim->m_cpu)+tx;
+                IdxType out_idx = (bx*TILE+tly)*(sim->dim)+ bz*(sim->m_cpu) + by*TILE+tlx;
+                smem_real[tly][tlx] = real_buf[in_idx];
+                smem_imag[tly][tlx] = -imag_buf[in_idx];
+
+                dm_real[out_idx] = smem_real[tlx][tly];
+                dm_imag[out_idx] = smem_imag[tlx][tly];
+
+            }
+        } 
+    }
 }
 
 //Packing portions for all-to-all communication, see our paper for detail.
-__device__ __inline__ void packing(Simulation* sim, const ValType* dm_real, const ValType* dm_imag,
+void packing(Simulation* sim, const ValType* dm_real, const ValType* dm_imag,
         ValType* real_buf, ValType* imag_buf)
 {
-    const int tid = blockDim.x * blockIdx.x + threadIdx.x; 
-    for (IdxType i = tid; i < (sim->dim) * (sim->m_gpu); i+=blockDim.x*gridDim.x)
+    const int tid = 0;
+    for (IdxType i = tid; i < (sim->dim) * (sim->m_cpu); i+=1)
     {
         ////Original version with sementics
         //IdxType w_in_block = i / dim;
-        //IdxType block_id = (i % dim) / m_gpu;
-        //IdxType h_in_block = (i % dim) % m_gpu;
+        //IdxType block_id = (i % dim) / m_cpu;
+        //IdxType h_in_block = (i % dim) % m_cpu;
         //IdxType id_in_dm = w_in_block*dim+(i%dim);
-        //IdxType id_in_buf = block_id * m_gpu * m_gpu + w_in_block * m_gpu + h_in_block;
+        //IdxType id_in_buf = block_id * m_cpu * m_cpu + w_in_block * m_cpu + h_in_block;
 
         //Optimized version
         IdxType w_in_block = (i >> (sim->n_qubits));
-        IdxType block_id = (i & (sim->dim-1)) >> (sim->lg2_m_gpu);
-        IdxType h_in_block = (i & (sim->dim-1)) & (sim->m_gpu-1);
+        IdxType block_id = (i & (sim->dim-1)) >> (sim->lg2_m_cpu);
+        IdxType h_in_block = (i & (sim->dim-1)) & (sim->m_cpu-1);
         IdxType id_in_dm = (w_in_block << (sim->n_qubits))+(i & (sim->dim-1));
-        IdxType id_in_buf = (block_id << (sim->lg2_m_gpu+sim->lg2_m_gpu)) 
-            + (w_in_block << (sim->lg2_m_gpu)) + h_in_block;
+        IdxType id_in_buf = (block_id << (sim->lg2_m_cpu+sim->lg2_m_cpu)) 
+            + (w_in_block << (sim->lg2_m_cpu)) + h_in_block;
 
         real_buf[id_in_buf] = dm_real[id_in_dm];
         imag_buf[id_in_buf] = dm_imag[id_in_dm];
@@ -833,32 +827,32 @@ __device__ __inline__ void packing(Simulation* sim, const ValType* dm_real, cons
 }
 
 //Unpacking portions after all-to-all communication, see our paper for detail.
-__device__ __inline__ void unpacking(Simulation* sim, ValType* send_real, ValType* send_imag,
+void unpacking(Simulation* sim, ValType* send_real, ValType* send_imag,
         const ValType* recv_real, const ValType* recv_imag)
 {
-    const int tid = blockDim.x * blockIdx.x + threadIdx.x; 
-    for (IdxType i = tid; i < (sim->dim) * (sim->m_gpu); i+=blockDim.x*gridDim.x)
+    const int tid = 0;
+    for (IdxType i = tid; i < (sim->dim) * (sim->m_cpu); i+=1)
     {
         ////Original version with sementics
         //IdxType j = i / dim; 
         //IdxType id_in_buf = j * dim + (i % dim);
-        //IdxType block_id = id_in_buf / (m_gpu*m_gpu);
-        //IdxType in_block_id = id_in_buf % (m_gpu*m_gpu);
-        //IdxType w_in_block = in_block_id / m_gpu;
-        //IdxType h_in_block = in_block_id % m_gpu;
+        //IdxType block_id = id_in_buf / (m_cpu*m_cpu);
+        //IdxType in_block_id = id_in_buf % (m_cpu*m_cpu);
+        //IdxType w_in_block = in_block_id / m_cpu;
+        //IdxType h_in_block = in_block_id % m_cpu;
         //IdxType dm_w = w_in_block;
-        //IdxType dm_h = h_in_block + m_gpu*block_id;
+        //IdxType dm_h = h_in_block + m_cpu*block_id;
         //IdxType id_in_dim = dm_w * dim + dm_h;
 
         //Optimized version
         IdxType j = (i >> (sim->n_qubits)); 
         IdxType id_in_buf = (j << (sim->n_qubits)) + (i & (sim->dim-0x1));
-        IdxType block_id = (id_in_buf >> (sim->lg2_m_gpu+sim->lg2_m_gpu));
-        IdxType in_block_id = (id_in_buf & ((sim->m_gpu)*(sim->m_gpu)-0x1));
-        IdxType w_in_block = (in_block_id >> (sim->lg2_m_gpu));
-        IdxType h_in_block = (in_block_id & (sim->m_gpu-1));
+        IdxType block_id = (id_in_buf >> (sim->lg2_m_cpu+sim->lg2_m_cpu));
+        IdxType in_block_id = (id_in_buf & ((sim->m_cpu)*(sim->m_cpu)-0x1));
+        IdxType w_in_block = (in_block_id >> (sim->lg2_m_cpu));
+        IdxType h_in_block = (in_block_id & (sim->m_cpu-1));
         IdxType dm_w = w_in_block;
-        IdxType dm_h = h_in_block + (block_id<<(sim->lg2_m_gpu));
+        IdxType dm_h = h_in_block + (block_id<<(sim->lg2_m_cpu));
         IdxType id_in_dim = (dm_w << (sim->n_qubits)) + dm_h;
 
         send_real[id_in_dim] = recv_real[id_in_buf]; 
@@ -866,9 +860,8 @@ __device__ __inline__ void unpacking(Simulation* sim, ValType* send_real, ValTyp
     }
 }
 
-__global__ void simulation_kernel(Simulation* sim, bool isforward)
+void simulation_kernel(Simulation* sim, bool isforward)
 {
-    grid_group grid = this_grid(); 
     //================ Scale-out MPI version ===================
     //Forward: In(dm_real, dm_imag) => Out(dm_real, dm_imag)
     //Packing: In(dm_real, dm_imag) => Out(dm_real_buf, dm_imag_buf)
@@ -889,10 +882,8 @@ __global__ void simulation_kernel(Simulation* sim, bool isforward)
     {
         unpacking(sim, sim->dm_real_buf, sim->dm_imag_buf,
                 sim->dm_real, sim->dm_imag); //(out,in)
-        grid.sync();
         block_transpose(sim, sim->dm_real, sim->dm_imag,
                 sim->dm_real_buf, sim->dm_imag_buf); //(out,in)
-        grid.sync();
         circuit(sim, sim->dm_real, sim->dm_imag);
     }
 }
@@ -900,12 +891,12 @@ __global__ void simulation_kernel(Simulation* sim, bool isforward)
 //=================================== Gate Definition ==========================================
 
 //Define MG-BSP machine operation header (Original version with semantics)
-// #define OP_HEAD_ORIGIN grid_group grid = this_grid(); \
-    const int tid = blockDim.x * blockIdx.x + threadIdx.x; \
+// #define OP_HEAD_ORIGIN \
+    const int tid = 0;\
     const IdxType outer_bound = (1 << ( (sim->n_qubits) - qubit - 1)); \
     const IdxType inner_bound = (1 << qubit); \
-        for (IdxType i = tid;i<outer_bound*inner_bound*(sim->m_gpu);\
-                i+=blockDim.x*gridDim.x){ \
+        for (IdxType i = tid;i<outer_bound*inner_bound*(sim->m_cpu);\
+                i+=1){ \
             IdxType col = i / (inner_bound * outer_bound); \
             IdxType outer = (i % (inner_bound * outer_bound)) / inner_bound; \
             IdxType inner =  i % inner_bound; \
@@ -914,10 +905,10 @@ __global__ void simulation_kernel(Simulation* sim, bool isforward)
             IdxType pos1 = pos0 + inner_bound; 
 
 //Define MG-BSP machine operation header (Optimized version)
-#define OP_HEAD grid_group grid = this_grid(); \
-    const int tid = blockDim.x * blockIdx.x + threadIdx.x; \
-        for (IdxType i=tid; i<((sim->half_dim)<<(sim->lg2_m_gpu));\
-                i+=blockDim.x*gridDim.x){ \
+#define OP_HEAD \
+    const int tid = 0; \
+        for (IdxType i=tid; i<((sim->half_dim)<<(sim->lg2_m_cpu));\
+                i+=1){ \
             IdxType col = (i >> (sim->n_qubits-1)); \
             IdxType outer = ((i & ((sim->half_dim)-1)) >> qubit); \
             IdxType inner =  (i & ((1<<qubit)-1)); \
@@ -925,11 +916,17 @@ __global__ void simulation_kernel(Simulation* sim, bool isforward)
             IdxType pos0 = (col << (sim->n_qubits)) + offset + inner; \
             IdxType pos1 = pos0 + (1<<qubit); 
 
+            //#define OP_HHEAD \
+            //for (IdxType i=0; i<((sim->half_dim)<<(sim->lg2_m_cpu));\
+            //i+=VEC){ \
+
+
+
 //Define MG-BSP machine operation footer
-#define OP_TAIL  } grid.sync(); 
+#define OP_TAIL  } 
 
 //============== Unified 1-qubit Gate ================
-__device__ __inline__ void C1_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, 
+void C1_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, 
         const ValType e0_real, const ValType e0_imag,
         const ValType e1_real, const ValType e1_imag,
         const ValType e2_real, const ValType e2_imag,
@@ -953,7 +950,7 @@ __device__ __inline__ void C1_GATE(const Simulation* sim, ValType* dm_real, ValT
 }
 
 //============== Unified 2-qubit Gate ================
-__device__ __inline__ void C2_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, 
+void C2_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, 
         const ValType e00_real, const ValType e00_imag,
         const ValType e01_real, const ValType e01_imag,
         const ValType e02_real, const ValType e02_imag,
@@ -972,13 +969,12 @@ __device__ __inline__ void C2_GATE(const Simulation* sim, ValType* dm_real, ValT
         const ValType e33_real, const ValType e33_imag,
         const IdxType qubit1, const IdxType qubit2)
 {
-    grid_group grid = this_grid(); 
-    const int tid = blockDim.x * blockIdx.x + threadIdx.x; 
+    const int tid = 0;
     const IdxType outer_bound1 = (1 << ( (sim->n_qubits) - qubit1 - 1)); 
     const IdxType inner_bound1 = (1 << qubit1); 
     const IdxType outer_bound2 = (1 << ( (sim->n_qubits) - qubit2 - 1)); 
     const IdxType inner_bound2 = (1 << qubit2); 
-    for (IdxType i = tid; i < outer_bound1* inner_bound2 * (sim->m_gpu); i++)
+    for (IdxType i = tid; i < outer_bound1* inner_bound2 * (sim->m_cpu); i++)
     { 
         IdxType col = i / (inner_bound1 * outer_bound1); 
         IdxType outer1 = (i % (inner_bound1 * outer_bound1)) / inner_bound1; 
@@ -991,7 +987,7 @@ __device__ __inline__ void C2_GATE(const Simulation* sim, ValType* dm_real, ValT
         const ValType el1_real = dm_real[pos1]; 
         const ValType el1_imag = dm_imag[pos1];
 
-        for (IdxType i = tid; i < outer_bound2* inner_bound2; i+=blockDim.x*gridDim.x)
+        for (IdxType i = tid; i < outer_bound2* inner_bound2; i+=1)
         { 
             IdxType outer2 = i / inner_bound2; 
             IdxType inner2 = i % inner_bound2;
@@ -1029,11 +1025,10 @@ __device__ __inline__ void C2_GATE(const Simulation* sim, ValType* dm_real, ValT
            [0 0 0 1]
            [0 0 1 0]
 */
-__device__ __inline__ void CX_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, 
+void CX_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, 
         const IdxType ctrl, const IdxType qubit)
 {
-    grid_group grid = this_grid(); 
-    const int tid = blockDim.x * blockIdx.x + threadIdx.x; 
+    const int tid = 0;
     const IdxType q0dim = (1 << max(ctrl, qubit) );
     const IdxType q1dim = (1 << min(ctrl, qubit) );
     assert (ctrl != qubit); //Non-cloning
@@ -1042,8 +1037,8 @@ __device__ __inline__ void CX_GATE(const Simulation* sim, ValType* dm_real, ValT
     const IdxType inner_factor = q1dim;
     const IdxType ctrldim = (1 << ctrl);
 
-    for (IdxType i = tid; i < outer_factor * mider_factor * inner_factor * (sim->m_gpu); 
-            i+=blockDim.x*gridDim.x)
+    for (IdxType i = tid; i < outer_factor * mider_factor * inner_factor * (sim->m_cpu); 
+            i+=1)
     {
         IdxType col = i / (outer_factor * mider_factor * inner_factor);
         IdxType row = i % (outer_factor * mider_factor * inner_factor);
@@ -1053,8 +1048,8 @@ __device__ __inline__ void CX_GATE(const Simulation* sim, ValType* dm_real, ValT
 
         IdxType pos0 = col * (sim->dim) + outer + mider + inner + ctrldim;
         IdxType pos1 = col * (sim->dim) + outer + mider + inner + q0dim + q1dim;
-        //assert (pos0 < dim*m_gpu); //ensure not out of bound
-        //assert (pos1 < dim*m_gpu); //ensure not out of bound
+        //assert (pos0 < dim*m_cpu); //ensure not out of bound
+        //assert (pos1 < dim*m_cpu); //ensure not out of bound
         const ValType el0_real = dm_real[pos0]; 
         const ValType el0_imag = dm_imag[pos0];
         const ValType el1_real = dm_real[pos1]; 
@@ -1064,7 +1059,6 @@ __device__ __inline__ void CX_GATE(const Simulation* sim, ValType* dm_real, ValT
         dm_real[pos1] = el0_real; 
         dm_imag[pos1] = el0_imag;
     }
-    grid.sync();
 }
 
 //============== X Gate ================
@@ -1072,7 +1066,7 @@ __device__ __inline__ void CX_GATE(const Simulation* sim, ValType* dm_real, ValT
 /** X = [0 1]
         [1 0]
 */
-__device__ __inline__ void X_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, const IdxType qubit)
+void X_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, const IdxType qubit)
 {
     OP_HEAD;
     const ValType el0_real = dm_real[pos0]; 
@@ -1084,6 +1078,74 @@ __device__ __inline__ void X_GATE(const Simulation* sim, ValType* dm_real, ValTy
     dm_real[pos1] = el0_real; 
     dm_imag[pos1] = el0_imag;
     OP_TAIL;
+
+    /*  
+    for (IdxType i=0; i<((sim->half_dim)<<(sim->lg2_m_cpu)); i+=1)
+    { 
+        IdxType col = (i >> (sim->n_qubits-1)); 
+        IdxType outer = ((i & ((sim->half_dim)-1)) >> qubit); 
+        IdxType inner =  (i & ((1<<qubit)-1)); 
+        IdxType offset = (outer << (qubit+1)); 
+        IdxType pos0 = (col << (sim->n_qubits)) + offset + inner; 
+        IdxType pos1 = pos0 + (1<<qubit); 
+
+        const ValType el0_real = dm_real[pos0]; 
+        const ValType el0_imag = dm_imag[pos0];
+        const ValType el1_real = dm_real[pos1]; 
+        const ValType el1_imag = dm_imag[pos1];
+        dm_real[pos0] = el1_real; 
+        dm_imag[pos0] = el1_imag;
+        dm_real[pos1] = el0_real; 
+        dm_imag[pos1] = el0_imag;
+    }
+    */
+
+    /*
+    typedef union{ __m256i m; unsigned u[8]; } m256_i;
+    m256_i in,out0,out1;
+    in.u[0] = 0; in.u[1] = 1; in.u[2] = 2; in.u[3] = 3;
+    in.u[4] = 4; in.u[5] = 5; in.u[6] = 6; in.u[7] = 7;
+
+    for (IdxType i=0; i<((sim->half_dim)<<(sim->lg2_m_cpu)); i+=VEC)
+    { 
+        __m256i idx, col, tmp1, tmp2, tmp3, outer, inner, offset, pos0, pos1;
+        idx = _mm256_set1_epi32(i);
+        idx = _mm256_add_epi32(idx, in.m);
+
+        col = _mm256_srli_epi32(idx,sim->n_qubits-1); //IdxType col = (i >> (sim->n_qubits-1)); 
+        tmp1 = _mm256_set1_epi32((sim->half_dim)-1);
+        tmp2 = _mm256_and_si256(idx,tmp1); 
+        outer = _mm256_srli_epi32(tmp2, qubit); //IdxType outer = ((i & ((sim->half_dim)-1)) >> qubit); 
+
+        tmp1 = _mm256_set1_epi32((1<<qubit)-1);
+        inner = _mm256_and_si256(idx,tmp1); //IdxType inner =  (i & ((1<<qubit)-1)); 
+
+        offset = _mm256_slli_epi32(outer, qubit+1); //IdxType offset = (outer << (qubit+1)); 
+        pos0 = _mm256_slli_epi32(col, sim->n_qubits);
+
+        tmp2 = _mm256_add_epi32(pos0, offset);
+        pos0 = _mm256_add_epi32(tmp2, inner); //IdxType pos0 = (col << (sim->n_qubits)) + offset + inner; 
+
+        tmp1 = _mm256_set1_epi32(1<<qubit);
+        pos1 = _mm256_add_epi32(pos0, tmp1); //IdxType pos1 = pos0 + (1<<qubit); 
+
+        out0.m = pos0;
+        out1.m = pos1;
+
+        for (unsigned j=0; j<8; j++)
+        {
+            const ValType el0_real = dm_real[out0.u[j]]; 
+            const ValType el0_imag = dm_imag[out0.u[j]];
+            const ValType el1_real = dm_real[out1.u[j]]; 
+            const ValType el1_imag = dm_imag[out1.u[j]];
+            dm_real[out0.u[j]] = el1_real; 
+            dm_imag[out0.u[j]] = el1_imag;
+            dm_real[out1.u[j]] = el0_real; 
+            dm_imag[out1.u[j]] = el0_imag;
+        }
+    }
+    */
+
 }
 
 
@@ -1093,7 +1155,7 @@ __device__ __inline__ void X_GATE(const Simulation* sim, ValType* dm_real, ValTy
 /** Y = [0 -i]
         [i  0]
 */
-__device__ __inline__ void Y_GATE(const Simulation* sim, ValType* dm_real,
+void Y_GATE(const Simulation* sim, ValType* dm_real,
         ValType* dm_imag, const IdxType qubit)
 {
     OP_HEAD;
@@ -1113,7 +1175,7 @@ __device__ __inline__ void Y_GATE(const Simulation* sim, ValType* dm_real,
 /** Z = [1  0]
         [0 -1]
 */
-__device__ __inline__ void Z_GATE(const Simulation* sim, ValType* dm_real, 
+void Z_GATE(const Simulation* sim, ValType* dm_real, 
         ValType* dm_imag, const IdxType qubit)
 {
     OP_HEAD;
@@ -1129,7 +1191,7 @@ __device__ __inline__ void Z_GATE(const Simulation* sim, ValType* dm_real,
 /** H = 1/sqrt(2) * [1  1]
                     [1 -1]
 */
-__device__ __inline__ void H_GATE(const Simulation* sim, ValType* dm_real, 
+void H_GATE(const Simulation* sim, ValType* dm_real, 
         ValType* dm_imag,  const IdxType qubit)
 {
     OP_HEAD;
@@ -1150,7 +1212,7 @@ __device__ __inline__ void H_GATE(const Simulation* sim, ValType* dm_real,
 /** SRN = 1/2 * [1+i 1-i]
                 [1-i 1+1]
 */
-__device__ __inline__ void SRN_GATE(const Simulation* sim, ValType* dm_real, 
+void SRN_GATE(const Simulation* sim, ValType* dm_real, 
         ValType* dm_imag, const IdxType qubit)
 {
     OP_HEAD;
@@ -1169,7 +1231,7 @@ __device__ __inline__ void SRN_GATE(const Simulation* sim, ValType* dm_real,
 /** ID = [1 0]
          [0 1]
 */
-__device__ __inline__ void ID_GATE(const Simulation* sim, ValType* dm_real,
+void ID_GATE(const Simulation* sim, ValType* dm_real,
         ValType* dm_imag, const IdxType qubit)
 {
 }
@@ -1180,7 +1242,7 @@ __device__ __inline__ void ID_GATE(const Simulation* sim, ValType* dm_real,
 /** R = [1 0]
         [0 0+p*i]
 */
-__device__ __inline__ void R_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, 
+void R_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, 
         const ValType phase, const IdxType qubit)
 {
     OP_HEAD;
@@ -1196,7 +1258,7 @@ __device__ __inline__ void R_GATE(const Simulation* sim, ValType* dm_real, ValTy
 /** S = [1 0]
         [0 i]
 */
-__device__ __inline__ void S_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,  const IdxType qubit)
+void S_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,  const IdxType qubit)
 {
     OP_HEAD;
     const ValType el1_real = dm_real[pos1]; 
@@ -1211,7 +1273,7 @@ __device__ __inline__ void S_GATE(const Simulation* sim, ValType* dm_real, ValTy
 /** SDG = [1  0]
           [0 -i]
 */
-__device__ __inline__ void SDG_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,  const IdxType qubit)
+void SDG_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,  const IdxType qubit)
 {
     OP_HEAD;
     const ValType el1_real = dm_real[pos1]; 
@@ -1226,7 +1288,7 @@ __device__ __inline__ void SDG_GATE(const Simulation* sim, ValType* dm_real, Val
 /** T = [1 0]
         [0 s2i+s2i*i]
 */
-__device__ __inline__ void T_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, const IdxType qubit)
+void T_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, const IdxType qubit)
 {
     OP_HEAD;
     const ValType el1_real = dm_real[pos1]; 
@@ -1241,7 +1303,7 @@ __device__ __inline__ void T_GATE(const Simulation* sim, ValType* dm_real, ValTy
 /** TDG = [1 0]
           [0 s2i-s2i*i]
 */
-__device__ __inline__ void TDG_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, const IdxType qubit)
+void TDG_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, const IdxType qubit)
 {
     OP_HEAD;
     const ValType el1_real = dm_real[pos1]; 
@@ -1256,7 +1318,7 @@ __device__ __inline__ void TDG_GATE(const Simulation* sim, ValType* dm_real, Val
 /** D = [e0_real+i*e0_imag 0]
         [0 e3_real+i*e3_imag]
 */
-__device__ __inline__ void D_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, 
+void D_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, 
         const ValType e0_real, const ValType e0_imag,
         const ValType e3_real, const ValType e3_imag,
         const IdxType qubit)
@@ -1275,7 +1337,7 @@ __device__ __inline__ void D_GATE(const Simulation* sim, ValType* dm_real, ValTy
 
 //============== U1 Gate ================
 //1-parameter 0-pulse single qubit gate
-__device__ __inline__ void U1_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void U1_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
         const ValType lambda, const IdxType qubit)
 {
     ValType e0_real = cos(-lambda/2.0);
@@ -1287,7 +1349,7 @@ __device__ __inline__ void U1_GATE(const Simulation* sim, ValType* dm_real, ValT
 
 //============== U2 Gate ================
 //2-parameter 1-pulse single qubit gate
-__device__ __inline__ void U2_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void U2_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
         const ValType phi, const ValType lambda, const IdxType qubit)
 {
     ValType e0_real = S2I * cos((-phi-lambda)/2.0);
@@ -1304,7 +1366,7 @@ __device__ __inline__ void U2_GATE(const Simulation* sim, ValType* dm_real, ValT
 
 //============== U3 Gate ================
 //3-parameter 2-pulse single qubit gate
-__device__ __inline__ void U3_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void U3_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
          const ValType theta, const ValType phi, 
          const ValType lambda, const IdxType qubit)
 {
@@ -1322,7 +1384,7 @@ __device__ __inline__ void U3_GATE(const Simulation* sim, ValType* dm_real, ValT
 
 //============== RX Gate ================
 //Rotation around X-axis
-__device__ __inline__ void RX_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void RX_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
        const ValType theta, const IdxType qubit)
 {
     ValType rx_real = cos(theta/2.0);
@@ -1341,7 +1403,7 @@ __device__ __inline__ void RX_GATE(const Simulation* sim, ValType* dm_real, ValT
 
 //============== RY Gate ================
 //Rotation around Y-axis
-__device__ __inline__ void RY_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void RY_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
         const ValType theta, const IdxType qubit)
 {
     ValType e0_real = cos(theta/2.0);
@@ -1363,7 +1425,7 @@ __device__ __inline__ void RY_GATE(const Simulation* sim, ValType* dm_real, ValT
 
 //============== RZ Gate ================
 //Rotation around Z-axis
-__device__ __inline__ void RZ_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void RZ_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
      const ValType phi, const IdxType qubit)
 {
     U1_GATE(sim, dm_real, dm_imag, phi, qubit);
@@ -1371,7 +1433,7 @@ __device__ __inline__ void RZ_GATE(const Simulation* sim, ValType* dm_real, ValT
 
 //============== CZ Gate ================
 //Controlled-Phase
-__device__ __inline__ void CZ_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void CZ_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
         const IdxType a, const IdxType b)
 {
     H_GATE(sim, dm_real, dm_imag, b);
@@ -1381,7 +1443,7 @@ __device__ __inline__ void CZ_GATE(const Simulation* sim, ValType* dm_real, ValT
 
 //============== CY Gate ================
 //Controlled-Y
-__device__ __inline__ void CY_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void CY_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
         const IdxType a, const IdxType b)
 {
     SDG_GATE(sim, dm_real, dm_imag, b);
@@ -1391,7 +1453,7 @@ __device__ __inline__ void CY_GATE(const Simulation* sim, ValType* dm_real, ValT
 
 //============== CH Gate ================
 //Controlled-H
-__device__ __inline__ void CH_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void CH_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
         const IdxType a, const IdxType b)
 {
     H_GATE(sim, dm_real, dm_imag, b);
@@ -1409,7 +1471,7 @@ __device__ __inline__ void CH_GATE(const Simulation* sim, ValType* dm_real, ValT
 
 //============== CRZ Gate ================
 //Controlled RZ rotation
-__device__ __inline__ void CRZ_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void CRZ_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
         const ValType lambda, const IdxType a, const IdxType b)
 {
     U1_GATE(sim, dm_real, dm_imag, lambda/2, b);
@@ -1420,7 +1482,7 @@ __device__ __inline__ void CRZ_GATE(const Simulation* sim, ValType* dm_real, Val
 
 //============== CU1 Gate ================
 //Controlled phase rotation 
-__device__ __inline__ void CU1_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void CU1_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
         const ValType lambda, const IdxType a, const IdxType b)
 {
     U1_GATE(sim, dm_real, dm_imag, lambda/2, b);
@@ -1432,7 +1494,7 @@ __device__ __inline__ void CU1_GATE(const Simulation* sim, ValType* dm_real, Val
 
 //============== CU1 Gate ================
 //Controlled U
-__device__ __inline__ void CU3_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void CU3_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
         const ValType theta, const ValType phi, const ValType lambda, 
         const IdxType c, const IdxType t)
 {
@@ -1447,7 +1509,7 @@ __device__ __inline__ void CU3_GATE(const Simulation* sim, ValType* dm_real, Val
 }
 
 //========= Toffoli Gate ==========
-__device__ __inline__ void CCX_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void CCX_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
         const IdxType a, const IdxType b, const IdxType c)
 {
     H_GATE(sim, dm_real, dm_imag, c);
@@ -1468,7 +1530,7 @@ __device__ __inline__ void CCX_GATE(const Simulation* sim, ValType* dm_real, Val
 }
 
 //========= SWAP Gate ==========
-__device__ __inline__ void SWAP_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void SWAP_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
         const IdxType a, const IdxType b)
 {
     CX_GATE(sim, dm_real, dm_imag, a,b);
@@ -1477,7 +1539,7 @@ __device__ __inline__ void SWAP_GATE(const Simulation* sim, ValType* dm_real, Va
 }
 
 //========= Fredkin Gate ==========
-__device__ __inline__ void CSWAP_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void CSWAP_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
         const IdxType a, const IdxType b, const IdxType c)
 {
     CX_GATE(sim, dm_real, dm_imag, c,b);
@@ -1487,7 +1549,7 @@ __device__ __inline__ void CSWAP_GATE(const Simulation* sim, ValType* dm_real, V
 
 //============== CRX Gate ================
 //Controlled RX rotation
-__device__ __inline__ void CRX_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void CRX_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
        const ValType lambda, const IdxType a, const IdxType b)
 {
     U1_GATE(sim, dm_real, dm_imag, PI/2, b);
@@ -1499,7 +1561,7 @@ __device__ __inline__ void CRX_GATE(const Simulation* sim, ValType* dm_real, Val
  
 //============== CRY Gate ================
 //Controlled RY rotation
-__device__ __inline__ void CRY_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void CRY_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
        const ValType lambda, const IdxType a, const IdxType b)
 {
     U3_GATE(sim, dm_real, dm_imag, lambda/2,0,0,b);
@@ -1510,7 +1572,7 @@ __device__ __inline__ void CRY_GATE(const Simulation* sim, ValType* dm_real, Val
  
 //============== RXX Gate ================
 //2-qubit XX rotation
-__device__ __inline__ void RXX_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void RXX_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
        const ValType theta, const IdxType a, const IdxType b)
 {
     U3_GATE(sim, dm_real, dm_imag, PI/2,theta,0,a);
@@ -1524,7 +1586,7 @@ __device__ __inline__ void RXX_GATE(const Simulation* sim, ValType* dm_real, Val
  
 //============== RZZ Gate ================
 //2-qubit ZZ rotation
-__device__ __inline__ void RZZ_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void RZZ_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
        const ValType theta, const IdxType a, const IdxType b)
 {
     CX_GATE(sim, dm_real, dm_imag, a,b);
@@ -1534,7 +1596,7 @@ __device__ __inline__ void RZZ_GATE(const Simulation* sim, ValType* dm_real, Val
  
 //============== RCCX Gate ================
 //Relative-phase CCX
-__device__ __inline__ void RCCX_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void RCCX_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
        const IdxType a, const IdxType b, const IdxType c)
 {
     U2_GATE(sim, dm_real, dm_imag, 0,PI,c);
@@ -1550,7 +1612,7 @@ __device__ __inline__ void RCCX_GATE(const Simulation* sim, ValType* dm_real, Va
  
 //============== RC3X Gate ================
 //Relative-phase 3-controlled X gate
-__device__ __inline__ void RC3X_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void RC3X_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
        const IdxType a, const IdxType b, const IdxType c, const IdxType d)
 {
     U2_GATE(sim, dm_real, dm_imag, 0,PI,d);
@@ -1575,7 +1637,7 @@ __device__ __inline__ void RC3X_GATE(const Simulation* sim, ValType* dm_real, Va
  
 //============== C3X Gate ================
 //3-controlled X gate
-__device__ __inline__ void C3X_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void C3X_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
        const IdxType a, const IdxType b, const IdxType c, const IdxType d)
 {
     H_GATE(sim, dm_real, dm_imag, d); 
@@ -1610,7 +1672,7 @@ __device__ __inline__ void C3X_GATE(const Simulation* sim, ValType* dm_real, Val
 //============== C3SQRTX Gate ================
 //3-controlled sqrt(X) gate, this equals the C3X gate where the CU1
 //rotations are -PI/8 not -PI/4
-__device__ __inline__ void C3SQRTX_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void C3SQRTX_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
        const IdxType a, const IdxType b, const IdxType c, const IdxType d)
 {
     H_GATE(sim, dm_real, dm_imag, d); 
@@ -1644,7 +1706,7 @@ __device__ __inline__ void C3SQRTX_GATE(const Simulation* sim, ValType* dm_real,
  
 //============== C4X Gate ================
 //4-controlled X gate
-__device__ __inline__ void C4X_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void C4X_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
        const IdxType a, const IdxType b, const IdxType c, 
        const IdxType d, const IdxType e)
 {
@@ -1664,7 +1726,7 @@ __device__ __inline__ void C4X_GATE(const Simulation* sim, ValType* dm_real, Val
 /** W = [s2i    -s2i*i]
         [-s2i*i s2i   ]
 */
-__device__ __inline__ void W_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, const IdxType qubit)
+void W_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, const IdxType qubit)
 {
     OP_HEAD;
     const ValType el0_real = dm_real[pos0]; 
@@ -1680,7 +1742,7 @@ __device__ __inline__ void W_GATE(const Simulation* sim, ValType* dm_real, ValTy
 
 //============== RYY Gate ================
 //2-qubit YY rotation
-__device__ __inline__ void RYY_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+void RYY_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
        const ValType theta, const IdxType a, const IdxType b)
 {
     RX_GATE(sim, dm_real, dm_imag, PI/2, a);
@@ -1696,241 +1758,239 @@ __device__ __inline__ void RYY_GATE(const Simulation* sim, ValType* dm_real, Val
 
 
 
-
-
-
 //==================================== Gate Ops  ========================================
 
-__device__ void U3_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void U3_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     U3_GATE(sim, dm_real, dm_imag, g->theta, g->phi, g->lambda, g->qb0); 
 }
 
-__device__ void U2_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void U2_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     U2_GATE(sim, dm_real, dm_imag, g->phi, g->lambda, g->qb0); 
 }
 
-__device__ void U1_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void U1_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     U1_GATE(sim, dm_real, dm_imag, g->lambda, g->qb0); 
 }
 
-__device__ void CX_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void CX_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     CX_GATE(sim, dm_real, dm_imag, g->qb0, g->qb1); 
 }
 
-__device__ void ID_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void ID_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     ID_GATE(sim, dm_real, dm_imag, g->qb0); 
 }
 
-__device__ void X_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void X_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     X_GATE(sim, dm_real, dm_imag, g->qb0); 
 }
 
-__device__ void Y_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void Y_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     Y_GATE(sim, dm_real, dm_imag, g->qb0); 
 }
 
-__device__ void Z_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void Z_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     Z_GATE(sim, dm_real, dm_imag, g->qb0); 
 }
 
-__device__ void H_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void H_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     H_GATE(sim, dm_real, dm_imag, g->qb0); 
 }
 
-__device__ void S_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void S_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     S_GATE(sim, dm_real, dm_imag, g->qb0); 
 }
 
-__device__ void SDG_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void SDG_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     SDG_GATE(sim, dm_real, dm_imag, g->qb0); 
 }
 
-__device__ void T_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void T_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     T_GATE(sim, dm_real, dm_imag, g->qb0); 
 }
 
-__device__ void TDG_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void TDG_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     TDG_GATE(sim, dm_real, dm_imag, g->qb0); 
 }
 
-__device__ void RX_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void RX_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     RX_GATE(sim, dm_real, dm_imag, g->theta, g->qb0); 
 }
 
-__device__ void RY_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void RY_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     RY_GATE(sim, dm_real, dm_imag, g->theta, g->qb0); 
 }
 
-__device__ void RZ_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void RZ_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     RZ_GATE(sim, dm_real, dm_imag, g->phi, g->qb0); 
 }
 
 //Composition Ops
-__device__ void CZ_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void CZ_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     CZ_GATE(sim, dm_real, dm_imag, g->qb0, g->qb1); 
 }
 
-__device__ void CY_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void CY_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     CY_GATE(sim, dm_real, dm_imag, g->qb0, g->qb1); 
 }
 
-__device__ void SWAP_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void SWAP_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     SWAP_GATE(sim, dm_real, dm_imag, g->qb0, g->qb1); 
 }
 
-__device__ void CH_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void CH_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     CH_GATE(sim, dm_real, dm_imag, g->qb0, g->qb1); 
 }
 
-__device__ void CCX_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void CCX_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     CCX_GATE(sim, dm_real, dm_imag, g->qb0, g->qb1, g->qb2); 
 }
 
-__device__ void CSWAP_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void CSWAP_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     CSWAP_GATE(sim, dm_real, dm_imag, g->qb0, g->qb1, g->qb2); 
 }
 
-__device__ void CRX_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void CRX_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     CRX_GATE(sim, dm_real, dm_imag, g->lambda, g->qb0, g->qb1);
 }
 
-__device__ void CRY_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void CRY_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     CRY_GATE(sim, dm_real, dm_imag, g->lambda, g->qb0, g->qb1);
 }
 
-__device__ void CRZ_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void CRZ_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     CRZ_GATE(sim, dm_real, dm_imag, g->lambda, g->qb0, g->qb1);
 }
 
-__device__ void CU1_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void CU1_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     CU1_GATE(sim, dm_real, dm_imag, g->lambda, g->qb0, g->qb1);
 }
 
-__device__ void CU3_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void CU3_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     CU3_GATE(sim, dm_real, dm_imag, g->theta, g->phi, g->lambda, g->qb0, g->qb1);
 }
 
-__device__ void RXX_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void RXX_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     RXX_GATE(sim, dm_real, dm_imag, g->theta, g->qb0, g->qb1);
 }
 
-__device__ void RZZ_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void RZZ_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     RZZ_GATE(sim, dm_real, dm_imag, g->theta, g->qb0, g->qb1);
 }
 
-__device__ void RCCX_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void RCCX_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     RCCX_GATE(sim, dm_real, dm_imag, g->qb0, g->qb1, g->qb2);
 }
 
-__device__ void RC3X_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void RC3X_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     RC3X_GATE(sim, dm_real, dm_imag, g->qb0, g->qb1, g->qb2, g->qb3);
 }
 
-__device__ void C3X_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void C3X_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     C3X_GATE(sim, dm_real, dm_imag, g->qb0, g->qb1, g->qb2, g->qb3);
 }
 
-__device__ void C3SQRTX_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void C3SQRTX_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     C3SQRTX_GATE(sim, dm_real, dm_imag, g->qb0, g->qb1, g->qb2, g->qb3);
 }
 
-__device__ void C4X_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void C4X_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     C4X_GATE(sim, dm_real, dm_imag, g->qb0, g->qb1, g->qb2, g->qb3, g->qb4);
 }
 
-__device__ void R_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void R_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     R_GATE(sim, dm_real, dm_imag, g->theta, g->qb0);
 }
-__device__ void SRN_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void SRN_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     SRN_GATE(sim, dm_real, dm_imag, g->qb0);
 }
-__device__ void W_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void W_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     W_GATE(sim, dm_real, dm_imag, g->qb0); 
 }
 
-__device__ void RYY_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
+void RYY_OP(const Gate* g, const Simulation* sim, ValType* dm_real, ValType* dm_imag)
 {
     RYY_GATE(sim, dm_real, dm_imag, g->theta, g->qb0, g->qb1);
 }
 
 
 
+
 // ============================ Device Function Pointers ================================
-__device__ func_t pU3_OP = U3_OP;
-__device__ func_t pU2_OP = U2_OP;
-__device__ func_t pU1_OP = U1_OP;
-__device__ func_t pCX_OP = CX_OP;
-__device__ func_t pID_OP = ID_OP;
-__device__ func_t pX_OP = X_OP;
-__device__ func_t pY_OP = Y_OP;
-__device__ func_t pZ_OP = Z_OP;
-__device__ func_t pH_OP = H_OP;
-__device__ func_t pS_OP = S_OP;
-__device__ func_t pSDG_OP = SDG_OP;
-__device__ func_t pT_OP = T_OP;
-__device__ func_t pTDG_OP = TDG_OP;
-__device__ func_t pRX_OP = RX_OP;
-__device__ func_t pRY_OP = RY_OP;
-__device__ func_t pRZ_OP = RZ_OP;
-__device__ func_t pCZ_OP = CZ_OP;
-__device__ func_t pCY_OP = CY_OP;
-__device__ func_t pSWAP_OP = SWAP_OP;
-__device__ func_t pCH_OP = CH_OP;
-__device__ func_t pCCX_OP = CCX_OP;
-__device__ func_t pCSWAP_OP = CSWAP_OP;
-__device__ func_t pCRX_OP = CRX_OP;
-__device__ func_t pCRY_OP = CRY_OP;
-__device__ func_t pCRZ_OP = CRZ_OP;
-__device__ func_t pCU1_OP = CU1_OP;
-__device__ func_t pCU3_OP = CU3_OP;
-__device__ func_t pRXX_OP = RXX_OP;
-__device__ func_t pRZZ_OP = RZZ_OP;
-__device__ func_t pRCCX_OP = RCCX_OP;
-__device__ func_t pRC3X_OP = RC3X_OP;
-__device__ func_t pC3X_OP = C3X_OP;
-__device__ func_t pC3SQRTX_OP = C3SQRTX_OP;
-__device__ func_t pC4X_OP = C4X_OP;
-__device__ func_t pR_OP = R_OP;
-__device__ func_t pSRN_OP = SRN_OP;
-__device__ func_t pW_OP = W_OP;
-__device__ func_t pRYY_OP = RYY_OP;
+ func_t pU3_OP = U3_OP;
+ func_t pU2_OP = U2_OP;
+ func_t pU1_OP = U1_OP;
+ func_t pCX_OP = CX_OP;
+ func_t pID_OP = ID_OP;
+ func_t pX_OP = X_OP;
+ func_t pY_OP = Y_OP;
+ func_t pZ_OP = Z_OP;
+ func_t pH_OP = H_OP;
+ func_t pS_OP = S_OP;
+ func_t pSDG_OP = SDG_OP;
+ func_t pT_OP = T_OP;
+ func_t pTDG_OP = TDG_OP;
+ func_t pRX_OP = RX_OP;
+ func_t pRY_OP = RY_OP;
+ func_t pRZ_OP = RZ_OP;
+ func_t pCZ_OP = CZ_OP;
+ func_t pCY_OP = CY_OP;
+ func_t pSWAP_OP = SWAP_OP;
+ func_t pCH_OP = CH_OP;
+ func_t pCCX_OP = CCX_OP;
+ func_t pCSWAP_OP = CSWAP_OP;
+ func_t pCRX_OP = CRX_OP;
+ func_t pCRY_OP = CRY_OP;
+ func_t pCRZ_OP = CRZ_OP;
+ func_t pCU1_OP = CU1_OP;
+ func_t pCU3_OP = CU3_OP;
+ func_t pRXX_OP = RXX_OP;
+ func_t pRZZ_OP = RZZ_OP;
+ func_t pRCCX_OP = RCCX_OP;
+ func_t pRC3X_OP = RC3X_OP;
+ func_t pC3X_OP = C3X_OP;
+ func_t pC3SQRTX_OP = C3SQRTX_OP;
+ func_t pC4X_OP = C4X_OP;
+ func_t pR_OP = R_OP;
+ func_t pSRN_OP = SRN_OP;
+ func_t pW_OP = W_OP;
+ func_t pRYY_OP = RYY_OP;
 //=====================================================================================
 
 }; //namespace DMSim

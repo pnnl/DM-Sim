@@ -1,21 +1,20 @@
 // ---------------------------------------------------------------------------
-// DM-Sim: Density-Matrix quantum circuit simulator based on GPU clusters
-// Version 2.1
-// ---------------------------------------------------------------------------
-// File: adder_n10_mpi.cu
-// A 10-qubit adder example based on MPI using C++/CUDA API.
-// Requires GPUDirect-RDMA support.
-// ---------------------------------------------------------------------------
+// DM-Sim: Density-Matrix Quantum Circuit Simulation Environment
+// Version 2.2
 // Ang Li, Scientist, Pacific Northwest National Laboratory(PNNL), U.S.
 // Homepage: http://www.angliphd.com
 // GitHub repo: http://www.github.com/pnnl/DM-Sim
 // PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
 // BSD Lincese.
 // ---------------------------------------------------------------------------
+// File: adder_n10_nvgpu_omp.cu
+// A 10-qubit adder example based on OpenMP using NVIDIA GPU backend.
+// For single-node (1 or more GPUs); no inter-GPU communication required.
+// ---------------------------------------------------------------------------
+
 #include <stdio.h>
-#include <mpi.h>
 #include "util.cuh"
-#include "gate_mpi.cuh"
+#include "dmsim_nvgpu_omp.cuh"
 
 //Use the DMSim namespace to enable C++/CUDA APIs
 using namespace DMSim;
@@ -33,22 +32,16 @@ void unmaj(Simulation &sim, const IdxType a, const IdxType b, const IdxType c)
     sim.append(Simulation::CX(c, a));
     sim.append(Simulation::CX(a, b));
 }
-//argc and argv are required for MPI.
-int main(int argc, char *argv[])
+
+int main()
 {
 //=================================== Initialization =====================================
-    //Initialize
-    int n_gpus = 0;
-    int i_gpu = 0;
-    MPI_Init(&argc, &argv);
-    MPI_Comm_rank(MPI_COMM_WORLD, &i_gpu);
-    MPI_Comm_size(MPI_COMM_WORLD, &n_gpus);
-    //printf("Rank-%d of %d processes.\n", i_gpu, n_gpus);
-    int n_qubits = 10;
     srand(RAND_SEED);
+    int n_qubits = 10;
+    int n_gpus = 1;
 
     //Obtain a simulator object
-    Simulation sim(n_qubits);
+    Simulation sim(n_qubits, n_gpus);
 
     //Add the gates to the circuit
     sim.append(Simulation::X(1));
@@ -56,7 +49,7 @@ int main(int argc, char *argv[])
     sim.append(Simulation::X(6));
     sim.append(Simulation::X(7));
     sim.append(Simulation::X(8));
-
+    
     //Call user-defined module functions 
     majority(sim, 0, 5, 1);
     majority(sim, 1, 6, 2);
@@ -73,13 +66,12 @@ int main(int argc, char *argv[])
 
     //Run the simulation
     sim.sim();
-
+    
     //Measure
-    auto res = sim.measure(5);
-    if (i_gpu == 0) print_measurement(res, 10, 5);
+    auto* res = sim.measure(5);
+    print_measurement(res, 10, 5);
+    delete res; 
 
-    //Finalize 
-    MPI_Finalize();
     return 0;
 }
 
