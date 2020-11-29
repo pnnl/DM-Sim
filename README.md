@@ -6,9 +6,13 @@ A Density Matrix Quantum Simulator for Single-GPU, Single-Node-Multi-GPUs and Mu
 
 ## Current version
 
-Latest version: **2.1**
+Latest version: **2.2**
 
-### Version-2.1 Updates:
+#### Version-2.2 Updates:
+ - Add CPU backend for both OpenMP and MPI so that DM-Sim can support system without GPUs.
+ - Reform the source code file structure.
+
+#### Version-2.1 Updates:
  - Support Q# code through [QIR](https://devblogs.microsoft.com/qsharp/introducing-quantum-intermediate-representation-qir/) and Bridge developed by Microsoft quantum team. The DM-Sim project is also listed as one of the [public projects](https://github.com/microsoft/qsharp-language/blob/main/Specifications/QIR/List.md) using QIR to support Q#/QDK. 
  - Enable the dump of current quantum circuit into a file stream.
 
