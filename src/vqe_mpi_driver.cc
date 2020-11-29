@@ -1,16 +1,15 @@
 // ---------------------------------------------------------------------------
-// DM-Sim: Density-Matrix quantum circuit simulator based on GPU clusters
-// Version 2.1
-// ---------------------------------------------------------------------------
-// File: vqe_mpi_driver.cc
-// The Vartional-Quantum-Eigensolver (VQE) driver for running Q# vqe on 
-// scale-out DM-Sim. Tested on ORNL Summit HPC.
-// ---------------------------------------------------------------------------
+// DM-Sim: Density-Matrix Quantum Circuit Simulation Environement
+// Version 2.2
 // Ang Li, Scientist, Pacific Northwest National Laboratory(PNNL), U.S.
 // Homepage: http://www.angliphd.com
 // GitHub repo: http://www.github.com/pnnl/DM-Sim
 // PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
 // BSD Lincese.
+// ---------------------------------------------------------------------------
+// File: vqe_mpi_driver.cc
+// The Vartional-Quantum-Eigensolver (VQE) driver for running Q# vqe on 
+// scale-out DM-Sim. Tested on ORNL Summit HPC.
 // ---------------------------------------------------------------------------
 
 #include <cassert>

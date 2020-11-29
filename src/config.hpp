@@ -1,24 +1,27 @@
 // ---------------------------------------------------------------------------
-// DM-Sim: Density-Matrix quantum circuit simulator based on GPU clusters
-// Version 2.1
-// ---------------------------------------------------------------------------
-// File: config.hpp
-// Configuration file in which we define the gate and runtime settings.
-// ---------------------------------------------------------------------------
+// DM-Sim: Density-Matrix Quantum Circuit Simulation Environment
+// Version 2.2
 // Ang Li, Scientist, Pacific Northwest National Laboratory(PNNL), U.S.
 // Homepage: http://www.angliphd.com
 // GitHub repo: http://www.github.com/pnnl/DM-Sim
 // PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
 // BSD Lincese.
 // ---------------------------------------------------------------------------
+// File: config.hpp
+// Configuration file defining the gate and runtime settings.
+// ---------------------------------------------------------------------------
+
 #ifndef CONFIG_H
 #define CONFIG_H
 
-//Error check for all CUDA Runtim-API calls and Kernel check
-#define CUDA_ERROR_CHECK
+//QIR backend: {NVGPU, CPU}
+#define NVGPU
 
 //Track per circuit execution performance
-//#define PRINT_MEA_PER_CIRCUIT
+#define PRINT_MEA_PER_CIRCUIT
+
+//Error check for all CUDA Runtim-API calls and Kernel check
+#define CUDA_ERROR_CHECK
 
 // ================================= Configurations =====================================
 namespace DMSim 
@@ -39,6 +42,10 @@ using ValType = double;
 #define PI 3.14159265358979323846
 // constant value of 1/sqrt(2)
 #define S2I 0.70710678118654752440 
+//// avx bitwidth for CPU
+//#define AVX 256
+//// vector length
+//#define VEC ((AVX)/sizeof(IdxType))
 
 }; //namespace DMSim
 

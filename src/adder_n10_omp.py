@@ -1,25 +1,29 @@
 ## ---------------------------------------------------------------------------
-## DM-Sim: Density-Matrix quantum circuit simulator based on GPU clusters
-## Version 2.1
-## ---------------------------------------------------------------------------
-## File: adder_n10_omp.py
-## A 10-qubit adder example using Python API.
-## Single-node (1 or more GPUs); No inter-GPU communication required.
-## Requires: PyBind11 (https://github.com/pybind/pybind11)
-##           CUDA-10.0 or newer (required by pybind11 for Python API)
-## ---------------------------------------------------------------------------
+## DM-Sim: Density-Matrix Quantum Circuit Simulation Environement
+## Version 2.2
 ## Ang Li, Scientist, Pacific Northwest National Laboratory(PNNL), U.S.
 ## Homepage: http://www.angliphd.com
 ## GitHub repo: http://www.github.com/pnnl/DM-Sim
 ## PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
 ## BSD Lincese.
 ## ---------------------------------------------------------------------------
+## File: adder_n10_omp.py
+## A 10-qubit adder example using Python API.
+## Single-node multiple NVIDIA GPUs; No inter-GPU communication required.
+## Requires: PyBind11 (https://github.com/pybind/pybind11)
+##           CUDA-10.0 or newer (required by pybind11 for Python API)
+## ---------------------------------------------------------------------------
 import sys
-import dmsim_py_omp_wrapper as dmsim_omp
+
+# Using DM-Sim NVGPU backend
+#import dmsim_py_nvgpu_omp as dmsim_omp
+
+# Using DM-Sim CPU backend
+import dmsim_py_cpu_omp as dmsim_omp
 
 ## Call via: $python circuit.py num_of_qubits num_of_gpus
 if (len(sys.argv) != 3):
-    print("Call using $python circuit.py n_qubits n_gpus\n")
+    print("Call using $python circuit.py n_qubits n_gpus/n_cpus\n")
     exit()
 
 n_qubits = int(sys.argv[1])
