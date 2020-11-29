@@ -17,7 +17,6 @@
 import sys
 import mpi4py
 from mpi4py import MPI
-import dmsim_py_nvgpu_mpi as dmsim_mpi
 
 # Using DM-Sim NVGPU backend
 #import dmsim_py_nvgpu_mpi as dmsim_mpi

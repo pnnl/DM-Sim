@@ -430,12 +430,7 @@ public:
                delete circuit[i];
        circuit.clear();
        circuit_copy.clear();
-       
        n_gates = 0;
-       dm_real = NULL;
-       dm_imag = NULL;
-       dm_real_buf = NULL;
-       dm_imag_buf = NULL;
    }
    IdxType* measure(unsigned repetition=10)
    {

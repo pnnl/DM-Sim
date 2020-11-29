@@ -33,12 +33,13 @@ CC_FLAGS = -O3 -m64 -std=c++11 -fPIC
 # MPI Compiler
 MPICC = mpicxx
 MPICC_FLAGS = -O3 -m64 -std=c++11 -fPIC
+MPI_INC = /share/apps/openmpi/3.1.3/gcc/7.3.0/include/ 
 
 # Python
 PY_NVGPU_OMP_FLAGS = --compiler-options=" -fopenmp -Wall -shared -std=c++11 -fPIC" -I/usr/include/python2.7 -lpython2.7 `python -m pybind11 --includes`
-PY_NVGPU_MPI_FLAGS = --compiler-options=" -Wall -shared -std=c++11 -fPIC" -I/usr/include/python2.7 -lpython2.7 `python -m pybind11 --includes` -I/opt/openmpi/include/ 
+PY_NVGPU_MPI_FLAGS = --compiler-options=" -Wall -shared -std=c++11 -fPIC" -I/usr/include/python2.7 -lpython2.7 `python -m pybind11 --includes` -I$(MPI_INC)
 PY_CPU_OMP_FLAGS = -fopenmp -Wall -shared -std=c++11 -fPIC -I/usr/include/python2.7 -lpython2.7 `python -m pybind11 --includes`
-PY_CPU_MPI_FLAGS = -Wall -shared -std=c++11 -fPIC -I/usr/include/python2.7 -lpython2.7 `python -m pybind11 --includes`
+PY_CPU_MPI_FLAGS = -Wall -shared -std=c++11 -fPIC -I/usr/include/python2.7 -lpython2.7 `python -m pybind11 --includes` -I$(MPI_INC)
 
 # QIR requires Clang, QIR and QIR-Bridge
 QIRCC = /autofs/nccs-svm1_sw/summit/llvm/10.0.1-rc1/10.0.1-rc1-0/bin/clang++
@@ -51,8 +52,13 @@ QIR_BRIDGE_FLAGS = -I. -I$(QIR_BRIDGE_PUBLIC) -L$(QIR_BRIDGE_BUILD)/lib/QIR -L$(
 # Linking
 LIBS = -lm
 
-OBJ = adder_n10_cpu_omp adder_n10_nvgpu_omp adder_n10_cpu_mpi adder_n10_nvgpu_mpi dmsim_py_cpu_omp.so 
-#dmsim_py_nvgpu_omp.so dmsim_py_nvgpu_mpi.so dmsim_py_cpu_mpi.so vqe_qir_mpi vqe_qir_omp
+#OBJ = adder_n10_cpu_omp adder_n10_nvgpu_omp adder_n10_cpu_mpi adder_n10_nvgpu_mpi 
+#OBJ = dmsim_py_nvgpu_omp.so dmsim_py_cpu_omp.so 
+#OBJ = dmsim_py_nvgpu_mpi.so dmsim_py_cpu_mpi.so 
+
+OBJ = vqe_qir_omp
+
+#vqe_qir_mpi 
 
 all: $(OBJ) 
 
@@ -76,8 +82,8 @@ adder_n10_nvgpu_omp: adder_n10_nvgpu_omp.cu dmsim_nvgpu_omp.cuh config.hpp util.
 adder_n10_nvgpu_mpi: adder_n10_nvgpu_mpi.cu dmsim_nvgpu_mpi.cuh config.hpp util.cuh
 	$(NVCC) $(NVCC_FLAGS) $(LIBS) -ccbin mpicxx adder_n10_nvgpu_mpi.cu -o $@
 
-dmsim_py_nvgpu_omp.so: py_nvgpu_omp_wrapper.cpp dmsim_nvgpu_omp.cuh config.hpp util.cuh
-	$(NVCC) $(NVCC_FLAGS) $(LIBS) $(PY_NVGPU_OMP_FLAGS) py_nvgpu_omp_wrapper.cpp -o $@
+dmsim_py_nvgpu_omp.so: py_nvgpu_omp_wrapper.cu dmsim_nvgpu_omp.cuh config.hpp util.cuh
+	$(NVCC) $(NVCC_FLAGS) $(LIBS) $(PY_NVGPU_OMP_FLAGS) py_nvgpu_omp_wrapper.cu -o $@
 
 dmsim_py_nvgpu_mpi.so: py_nvgpu_mpi_wrapper.cu dmsim_nvgpu_mpi.cuh config.hpp util.cuh
 	$(NVCC) $(NVCC_FLAGS) $(LIBS) $(PY_NVGPU_MPI_FLAGS) py_nvgpu_mpi_wrapper.cu -o $@
