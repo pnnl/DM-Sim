@@ -14,10 +14,21 @@
 #include <exception>
 #include <iostream>
 #include <stdexcept>
+#include "config.hpp"
 
 #include "QuantumApiBase.hpp"
+
+#ifdef NVGPU
+
 #include "util.cuh"
-#include "gate_omp.cuh"
+#include "dmsim_nvgpu_omp.cuh"
+
+#else
+
+#include "util_cpu.h"
+#include "dmsim_cpu_omp.hpp"
+
+#endif
 
 using namespace DMSim;
 
@@ -48,12 +59,12 @@ class DM_QirSimulator final : public quantum::CQuantumApiBase
   DM_QirSimulator():sim(NULL),last_cir(""),timer() 
   {
       n_qubits = 12;
-      n_gpus = 4;
+      n_ranks = 4;
       is_new_sim = true;
       new_qubit_pos = 0;
       total_sim_time = 0;
       res_dm = NULL;
-      sim = new Simulation(n_qubits, n_gpus);
+      sim = new Simulation(n_qubits, n_ranks);
   }
   ~DM_QirSimulator()
   {
@@ -430,9 +441,6 @@ class DM_QirSimulator final : public quantum::CQuantumApiBase
   // Results
   Result M(QUBIT* Qtarget) override 
   {
-      bool b_val = ((res_dm[0] >> to_qubit(Qtarget)) & 0x1);
-      return (b_val? one : zero);
-
       if (is_new_sim)
       {
           is_new_sim = false;
@@ -482,10 +490,12 @@ class DM_QirSimulator final : public quantum::CQuantumApiBase
   Simulation* sim;
   std::string last_cir;
   unsigned n_qubits;
-  unsigned n_gpus;
+  unsigned n_ranks;
   bool is_new_sim;
   IdxType* res_dm;
   IdxType new_qubit_pos;
+  double total_sim_time;
+  cpu_timer timer;
 };
 
 //extern "C" quantum::IQuantumApi* UseQAPI() 

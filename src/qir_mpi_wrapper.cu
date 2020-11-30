@@ -16,6 +16,7 @@
 #include <mpi.h>
 #include <stdexcept>
 
+#include "config.hpp"
 #include "QuantumApiBase.hpp"
 
 #ifdef NVGPU
@@ -26,7 +27,7 @@
 #else
 
 #include "util_cpu.h"
-#include "dmsim_cpu_mpi.cuh"
+#include "dmsim_cpu_mpi.hpp"
 
 #endif
 
