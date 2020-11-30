@@ -56,14 +56,19 @@ int main()
     //const int64_t ops_n = 1;
     //enum PauliId ops[ops_n] = {PauliId_Z};
 
-    std::cout << "*** Testing QIR VQE example with DM-Sim ***" << std::endl;
+    //std::cout << "*** Testing QIR VQE example with DM-Sim ***" << std::endl;
     double jwTermEnergy = 0;
     //jwTermEnergy = Sample_VQE_EstimateTermExpectation(
     //n, states1, n, states2, phase, ops_n, ops, coeff, nSamples);
     jwTermEnergy = Microsoft__Quantum__Samples__Chemistry__SimpleVQE__GetEnergyHydrogenVQE__body();
     
     
-    std::cout << "jwTermEnergy is " << jwTermEnergy << std::endl;
+    //std::cout << "jwTermEnergy is " << jwTermEnergy << std::endl;
+    //std::cout << "\n===============================\n";
+    //std::cout << "VQE_jwTermEnergy is " << jwTermEnergy << std::endl;
+    //std::cout << "===============================\n";
+    std::cout << jwTermEnergy << std::endl;
+ 
 
     return 0;
 }

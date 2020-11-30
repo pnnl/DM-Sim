@@ -24,7 +24,7 @@
 #include <string.h>
 #include <cstdlib>
 
-#include <immintrin.h>
+//#include <immintrin.h>
 //#include <immintrin.h>
 
 #include "config.hpp"

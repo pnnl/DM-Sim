@@ -15,7 +15,8 @@
 #define CONFIG_H
 
 //QIR backend: {NVGPU, CPU}
-#define NVGPU
+//#define NVGPU
+#define CPU
 
 //Track per circuit execution performance
 #define PRINT_MEA_PER_CIRCUIT
@@ -31,7 +32,7 @@ using IdxType = unsigned;
 //Basic Type for value, expect to support half, float and double
 using ValType = double;
 //Random seed
-#define RAND_SEED 5
+#define RAND_SEED time(0)
 //Tile for transposition in the adjoint operation
 #define TILE 16
 //Threads per GPU Thread BLock (Fixed)

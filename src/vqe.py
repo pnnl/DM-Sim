@@ -33,7 +33,12 @@ def run_program(var_params):
     global total_time
     # TODO: call QIR program here
     # run parameterized quantum program for VQE algorithm
-    cmd = "jsrun -n1 -a1 -g1 -c1 --smpiargs='-gpu' ./qir_vqe_mpi " + str(var_params[0]) + " " + str(var_params[1]) + " " + str(var_params[2]) 
+
+    ## MPI
+    cmd = "jsrun -n4 -a1 -g1 -c1 --smpiargs='-gpu' ./vqe_qir_mpi " + str(var_params[0]) + " " + str(var_params[1]) + " " + str(var_params[2]) 
+    ## OMP
+    #cmd = "./vqe_qir_omp " + str(var_params[0]) + " " + str(var_params[1]) + " " + str(var_params[2]) 
+
     print (cmd)
     start = time.time()
     feedback = commands.getoutput(cmd)

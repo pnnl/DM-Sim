@@ -42,23 +42,22 @@ PY_CPU_OMP_FLAGS = -fopenmp -Wall -shared -std=c++11 -fPIC -I/usr/include/python
 PY_CPU_MPI_FLAGS = -Wall -shared -std=c++11 -fPIC -I/usr/include/python2.7 -lpython2.7 `python -m pybind11 --includes` -I$(MPI_INC)
 
 # QIR requires Clang, QIR and QIR-Bridge
-QIRCC = /autofs/nccs-svm1_sw/summit/llvm/10.0.1-rc1/10.0.1-rc1-0/bin/clang++
-CIRCC_FLAGS = -std=c++11 -m64 -O3 -I. -I$(QIR_BRIDGE_PUBLIC) -fPIC
-
 QIR_BRIDGE_PUBLIC = /ccs/home/angli/work/dmsim_qir/qir-pnnl/src/Bridge/public
 QIR_BRIDGE_BUILD = /ccs/home/angli/work/dmsim_qir/qir-pnnl/src/Bridge/build/Linux/Release
 QIR_BRIDGE_FLAGS = -I. -I$(QIR_BRIDGE_PUBLIC) -L$(QIR_BRIDGE_BUILD)/lib/QIR -L$(QIR_BRIDGE_BUILD)/lib/Simulators -L$(QIR_BRIDGE_BUILD)/lib/GateDecompositions -L$(QIR_BRIDGE_BUILD)/test/QIR/ -ldefault_gates  -lsimulators -lqir_bridge_qis -lqir_qis -lqir_bridge -lqir_rt --compiler-options -fPIC
 
+QIRCC = /autofs/nccs-svm1_sw/summit/llvm/10.0.1-rc1/10.0.1-rc1-0/bin/clang++
+QIRCC_FLAGS = -std=c++11 -m64 -O3 -I. -I$(QIR_BRIDGE_PUBLIC) -fPIC
+
 # Linking
 LIBS = -lm
+
+OBJ = adder_n10_cpu_omp adder_n10_nvgpu_omp adder_n10_cpu_mpi adder_n10_nvgpu_mpi dmsim_py_nvgpu_omp.so dmsim_py_cpu_omp.so dmsim_py_nvgpu_mpi.so dmsim_py_cpu_mpi.so vqe_qir_omp vqe_qir_mpi
 
 #OBJ = adder_n10_cpu_omp adder_n10_nvgpu_omp adder_n10_cpu_mpi adder_n10_nvgpu_mpi 
 #OBJ = dmsim_py_nvgpu_omp.so dmsim_py_cpu_omp.so 
 #OBJ = dmsim_py_nvgpu_mpi.so dmsim_py_cpu_mpi.so 
-
-OBJ = vqe_qir_omp
-
-#vqe_qir_mpi 
+#OBJ = vqe_qir_omp vqe_qir_mpi
 
 all: $(OBJ) 
 
@@ -91,15 +90,15 @@ dmsim_py_nvgpu_mpi.so: py_nvgpu_mpi_wrapper.cu dmsim_nvgpu_mpi.cuh config.hpp ut
 
 #============================== Microsoft QIR ====================================
 # Update config.hpp to change a backend (e.g., CPU, NVGPU)
-vqe_qir_mpi: vqe.ll vqe_mpi_driver.cc qir_mpi_wrapper.cpp dmsim_nvgpu_mpi.cuh dmsim_cpu_mpi.hpp config.hpp
+vqe_qir_mpi: vqe.ll vqe_mpi_driver.cc qir_mpi_wrapper.cu dmsim_nvgpu_mpi.cuh dmsim_cpu_mpi.hpp config.hpp
 	$(QIRCC) $(QIRCC_FLAGS) -o vqe.o -c vqe.ll
 	$(QIRCC) $(QIRCC_FLAGS) -o vqe_mpi_driver.o -c vqe_mpi_driver.cc
-	$(NVCC) $(NVCC_FLAGS) $(QIR_BRIDGE_FLAGS) $(LIBS) -ccbin mpicxx qir_mpi_wrapper.cpp vqe.o vqe_mpi_driver.o -o $@
+	$(NVCC) $(NVCC_FLAGS) $(QIR_BRIDGE_FLAGS) $(LIBS) -ccbin mpicxx qir_mpi_wrapper.cu vqe.o vqe_mpi_driver.o -o $@
 
-vqe_qir_omp: vqe.ll vqe_omp_driver.cc qir_omp_wrapper.cpp dmsim_nvgpu_omp.cuh dmsim_cpu_omp.hpp config.hpp
+vqe_qir_omp: vqe.ll vqe_omp_driver.cc qir_omp_wrapper.cu dmsim_nvgpu_omp.cuh dmsim_cpu_omp.hpp config.hpp
 	$(QIRCC) $(QIRCC_FLAGS) -o vqe.o -c vqe.ll
-	$(QIRCC) $(QIRCC_FLAGS) -o vqe_mpi_driver.o -c vqe_mpi_driver.cc
-	$(CC) $(CC_FLAGS) $(QIR_BRIDGE_FLAGS) $(LIBS) -fopenmp qir_omp_wrapper.cpp vqe.o vqe_mpi_driver.o -o $@
+	$(QIRCC) $(QIRCC_FLAGS) -o vqe_omp_driver.o -c vqe_omp_driver.cc
+	$(NVCC) $(NVCC_FLAGS) $(QIR_BRIDGE_FLAGS) $(LIBS) -Xcompiler -fopenmp qir_omp_wrapper.cu vqe.o vqe_omp_driver.o -o $@
 
 
 clean:
