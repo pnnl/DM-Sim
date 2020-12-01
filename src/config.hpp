@@ -19,7 +19,7 @@
 //#define CPU
 
 //Track per circuit execution performance
-#define PRINT_MEA_PER_CIRCUIT
+//#define PRINT_MEA_PER_CIRCUIT
 
 //Error check for all CUDA Runtim-API calls and Kernel check
 #define CUDA_ERROR_CHECK

@@ -53,7 +53,7 @@ class DM_QirSimulator final : public Microsoft::Quantum::SimulatorStub
   }
   DM_QirSimulator():sim(NULL),last_cir(""),timer() 
   {
-      n_qubits = 12;
+      n_qubits = 6;
       n_ranks = 4;
       is_new_sim = true;
       new_qubit_pos = 0;
@@ -412,7 +412,8 @@ class DM_QirSimulator final : public Microsoft::Quantum::SimulatorStub
           res_dm = sim->measure(1);
       }
       bool b_val = ((res_dm[0] >> to_qubit(Qtarget)) & 0x1);
-      return reinterpret_cast<Result>(b_val);
+      //return reinterpret_cast<Result>(b_val);
+      return b_val? UseOne() : UseZero();
   }
   Result Measure(long numBases, PauliId bases[], long numTargets,
           QUBIT* targets[]) 
