@@ -1,4 +1,4 @@
-# DM-Sim: Quantum Circuit Simulator via Density Matrix on GPU Clusters
+# DM-Sim: Density Matrix Quantum Circuit Simulation Environment
 
 A Density Matrix Quantum Simulation Environment for Single-GPU/CPU, Single-Node-Multi-GPUs/CPUs and Multi-Nodes GPU/CPU Cluster. 
 
