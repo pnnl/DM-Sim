@@ -18,7 +18,7 @@
 ## ---------------------------------------------------------------------------
 
 from scipy.optimize import minimize
-import commands
+import subprocess
 import time
 
 #import mpi4py
@@ -35,13 +35,13 @@ def run_program(var_params):
     # run parameterized quantum program for VQE algorithm
 
     ## MPI
-    cmd = "jsrun -n4 -a1 -g1 -c1 --smpiargs='-gpu' ./vqe_qir_mpi " + str(var_params[0]) + " " + str(var_params[1]) + " " + str(var_params[2]) 
+    #cmd = "jsrun -n4 -a1 -g1 -c1 --smpiargs='-gpu' ./vqe_qir_mpi " + str(var_params[0]) + " " + str(var_params[1]) + " " + str(var_params[2]) 
     ## OMP
-    #cmd = "./vqe_qir_omp " + str(var_params[0]) + " " + str(var_params[1]) + " " + str(var_params[2]) 
+    cmd = "./vqe_qir_omp " + str(var_params[0]) + " " + str(var_params[1]) + " " + str(var_params[2]) 
 
     print (cmd)
     start = time.time()
-    feedback = commands.getoutput(cmd)
+    feedback = subprocess.getoutput(cmd)
     stop = time.time()
     total_time += stop - start
     print (feedback)

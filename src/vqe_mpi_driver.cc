@@ -15,40 +15,18 @@
 #include <cassert>
 #include <iostream>
 #include <mpi.h>
-//#include <pybind11/pybind11.h>
-//#include <pybind11/numpy.h>
+#include "QuantumApi_I.hpp"
+#include "BitStates.hpp"
+#include "SimFactory.hpp"
 
-#include "CoreTypes.hpp"
-#include "IQuantumApi.hpp"
-#include "ITranslator.hpp"
-#include "QPFactory.hpp"
-
-extern "C" Result ResultOne = nullptr;
-extern "C" Result ResultZero = nullptr;
+//extern "C" Result ResultOne = nullptr;
+//extern "C" Result ResultZero = nullptr;
 
 //Calling the entry function defined in vqe.ll
 extern "C" double Microsoft__Quantum__Samples__Chemistry__SimpleVQE__GetEnergyHydrogenVQE__body(double, double, double);
 
-extern "C" Result* measure(QUBIT* measureops, QUBIT* registers)
-{
-    printf("Here has some issues in qis__mesure()\n");
-    fflush(stdout);
-    //assert(0);
-    Result* res = new Result[1];
-    //Result res[4] = {Result(0), Result(0), Result(0), Result(0)};
-    return res;
-}
-
-//These functions are for debugging code in vqe.ll
-extern "C" void printval_i8(int8_t* x)
-{
-    std::cout << "== Value is " << int(*((char*)x)) << std::endl;
-}
-
-extern "C" void printval_i64(int64_t x)
-{
-    std::cout << "== Value is " << x << std::endl;
-}
+//Calling to get the simulator instance
+extern "C" Microsoft::Quantum::ISimulator* GetDMSim(); 
 
 //argc and argv are required for MPI.
 int main(int argc, char *argv[])
@@ -64,8 +42,8 @@ int main(int argc, char *argv[])
     double theta2 = atof(argv[2]);
     double theta3 = atof(argv[3]);
 
-    //if (i_gpu == 0) std::cout << "*** Testing QIR VQE example with DM-Sim ***" << std::endl;
-    //if (i_gpu == 0) std::cout << theta1 << "," << theta2 << "," << theta3;
+    Microsoft::Quantum::ISimulator* dmsim = GetDMSim();
+    Microsoft::Quantum::SetSimulatorForQIR(dmsim);
 
     double jwTermEnergy = 0;
     jwTermEnergy = 
@@ -73,13 +51,14 @@ int main(int argc, char *argv[])
     
     if (i_gpu == 0) 
     {
+        //std::cout << "*** Testing QIR VQE example with DM-Sim ***" << std::endl;
         //std::cout << "\n===============================\n";
         //std::cout << "VQE_jwTermEnergy is " << jwTermEnergy << std::endl;
         //std::cout << "===============================\n";
         std::cout << jwTermEnergy << std::endl;
     }
+
     //Finalize 
     MPI_Finalize();
-
     return 0;
 }

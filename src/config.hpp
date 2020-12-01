@@ -15,8 +15,8 @@
 #define CONFIG_H
 
 //QIR backend: {NVGPU, CPU}
-//#define NVGPU
-#define CPU
+#define NVGPU
+//#define CPU
 
 //Track per circuit execution performance
 #define PRINT_MEA_PER_CIRCUIT

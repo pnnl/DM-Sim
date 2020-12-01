@@ -17,18 +17,14 @@
 #include <stdexcept>
 
 #include "config.hpp"
-#include "QuantumApiBase.hpp"
+#include "SimulatorStub.hpp"
 
 #ifdef NVGPU
-
 #include "util.cuh"
 #include "dmsim_nvgpu_mpi.cuh"
-
 #else
-
 #include "util_cpu.h"
 #include "dmsim_cpu_mpi.hpp"
-
 #endif
 
 using namespace DMSim;
@@ -38,7 +34,7 @@ constexpr double fraction_to_theta(int numerator, int power)
   return -1.0 * PI * numerator / (1ul << (power - 1));
 }
 
-class DM_QirSimulator final : public quantum::CQuantumApiBase 
+class DM_QirSimulator final : public Microsoft::Quantum::SimulatorStub
 {
  public:
   // The clients should never attempt to derefenece the Result, so we'll use
@@ -72,89 +68,54 @@ class DM_QirSimulator final : public quantum::CQuantumApiBase
       new_qubit_pos = 0;
       delete sim;
   }
-  void GetState(TGetStateCallback callback) override 
-  {
-      throw std::logic_error("GetState not_implemented");
-  }
-
   // Shortcuts
-  void CX(QUBIT* Qcontrol, QUBIT* Qtarget) override 
+  void CX(QUBIT* Qcontrol, QUBIT* Qtarget)  
   {
       sim->append(Simulation::CX(to_qubit(Qcontrol), to_qubit(Qtarget)));
   }
-  void CY(QUBIT* Qcontrol, QUBIT* Qtarget) override 
+  void CY(QUBIT* Qcontrol, QUBIT* Qtarget)  
   {
       sim->append(Simulation::CY(to_qubit(Qcontrol), to_qubit(Qtarget)));
   }
-  void CZ(QUBIT* Qcontrol, QUBIT* Qtarget) override 
+  void CZ(QUBIT* Qcontrol, QUBIT* Qtarget)  
   {
       sim->append(Simulation::CZ(to_qubit(Qcontrol), to_qubit(Qtarget)));
   }
 
   // Elementary operations
-  void X(QUBIT* Qtarget) override 
+  void X(QUBIT* Qtarget)  
   {
-      //printf("To add X gate..\n");
-      //fflush(stdout);
       sim->append(Simulation::X(to_qubit(Qtarget)));
-      //printf("X gate added..\n");
-      //fflush(stdout);
   }
-  void Y(QUBIT* Qtarget) override 
+  void Y(QUBIT* Qtarget)  
   {
       sim->append(Simulation::Y(to_qubit(Qtarget)));
   }
-  void Z(QUBIT* Qtarget) override 
+  void Z(QUBIT* Qtarget)  
   {
       sim->append(Simulation::Z(to_qubit(Qtarget)));
   }
-  void H(QUBIT* Qtarget) override 
+  void H(QUBIT* Qtarget)  
   {
       sim->append(Simulation::H(to_qubit(Qtarget)));
   }
-  void S(QUBIT* Qtarget) override 
+  void S(QUBIT* Qtarget)  
   {
       sim->append(Simulation::S(to_qubit(Qtarget)));
   }
-  void T(QUBIT* Qtarget) override 
+  void T(QUBIT* Qtarget)  
   {
       sim->append(Simulation::T(to_qubit(Qtarget)));
   }
-  void SWAP(QUBIT* Qtarget0, QUBIT* Qtarget1) override 
+  void SWAP(QUBIT* Qtarget0, QUBIT* Qtarget1)  
   {
       sim->append(Simulation::SWAP(to_qubit(Qtarget0), to_qubit(Qtarget1)));
   }
-  void Clifford(CliffordId cliffordId, PauliId pauli, QUBIT* target) override 
-  {
-      switch (cliffordId) 
-      {
-          case CliffordId_H:
-              sim->append(Simulation::H(to_qubit(target)));
-              break;
-          case CliffordId_S:
-              sim->append(Simulation::S(to_qubit(target)));
-              break;
-          case CliffordId_SH:
-              sim->append(Simulation::S(to_qubit(target)));
-              sim->append(Simulation::H(to_qubit(target)));
-              break;
-          case CliffordId_HS:
-              sim->append(Simulation::H(to_qubit(target)));
-              sim->append(Simulation::S(to_qubit(target)));
-              break;
-          case CliffordId_HSH:
-              sim->append(Simulation::H(to_qubit(target)));
-              sim->append(Simulation::S(to_qubit(target)));
-              sim->append(Simulation::H(to_qubit(target)));
-              break;
-      }
-      //throw std::logic_error("Clifford not_implemented");
-  }
-  void Unitary(long numTargets, double** unitary, QUBIT* targets[]) override 
+  void Unitary(long numTargets, double** unitary, QUBIT* targets[])  
   {
       throw std::logic_error("Unitary not_implemented");
   }
-  void R(PauliId axis, QUBIT* Qtarget, double theta) override 
+  void R(PauliId axis, QUBIT* Qtarget, double theta)  
   {
       IdxType target = to_qubit(Qtarget);
       switch (axis) 
@@ -178,7 +139,7 @@ class DM_QirSimulator final : public quantum::CQuantumApiBase
               break;
       }
   }
-  void RFraction(PauliId axis, QUBIT* Qtarget, long numerator, long power) override 
+  void RFraction(PauliId axis, QUBIT* Qtarget, long numerator, long power)  
   {
       IdxType target = to_qubit(Qtarget);
       switch (axis) 
@@ -200,17 +161,17 @@ class DM_QirSimulator final : public quantum::CQuantumApiBase
               break;
       }
   }
-  void R1(QUBIT* target, double theta) override 
+  void R1(QUBIT* target, double theta)  
   {
       //According to: https://docs.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.intrinsic.r1, R1 is equivalent to R(PauliZ,theta,qubit); R(PauliI,-theta,qubit); 
       R(PauliId_Z, target, theta);
       R(PauliId_I, target, -theta);
   }
-  void R1Fraction(QUBIT* target, long numerator, long power) override 
+  void R1Fraction(QUBIT* target, long numerator, long power)  
   {
       R1(target, fraction_to_theta(numerator, power));
   }
-  void Exp(long numTargets, PauliId paulis[], QUBIT* targets[], double theta) override 
+  void Exp(long numTargets, PauliId paulis[], QUBIT* targets[], double theta)  
   {
       //Currently we only have RXX, RYY and RZZ
       assert(numTargets == 2 && paulis[0] == paulis[1]);
@@ -234,11 +195,11 @@ class DM_QirSimulator final : public quantum::CQuantumApiBase
       }
   }
 
-  void ExpFraction(long numTargets, PauliId paulis[], QUBIT* targets[], long numerator, long power) override 
+  void ExpFraction(long numTargets, PauliId paulis[], QUBIT* targets[], long numerator, long power)  
   {
       Exp(numTargets, paulis, targets, fraction_to_theta(numerator, power));
   }
-  void ControlledX(long numControls, QUBIT* Qcontrols[], QUBIT* Qtarget) override 
+  void ControlledX(long numControls, QUBIT* Qcontrols[], QUBIT* Qtarget)  
   {
       //Currently we only have CX, CCX, C3X, C4X
       assert(numControls>0 && numControls<5);
@@ -264,58 +225,53 @@ class DM_QirSimulator final : public quantum::CQuantumApiBase
               break;
       }
   }
-  void ControlledY(long numControls, QUBIT* Qcontrols[], QUBIT* Qtarget) override 
+  void ControlledY(long numControls, QUBIT* Qcontrols[], QUBIT* Qtarget)  
   {
       //Currently we only have CY
       assert(numControls == 1);
       sim->append(Simulation::CY(to_qubit(Qcontrols[0]), to_qubit(Qtarget)));
   }
-  void ControlledZ(long numControls, QUBIT* Qcontrols[], QUBIT* Qtarget) override 
+  void ControlledZ(long numControls, QUBIT* Qcontrols[], QUBIT* Qtarget)  
   {
       //Currently we only have CZ
       assert(numControls == 1);
       sim->append(Simulation::CZ(to_qubit(Qcontrols[0]), to_qubit(Qtarget)));
   }
-  void ControlledH(long numControls, QUBIT* Qcontrols[], QUBIT* Qtarget) override 
+  void ControlledH(long numControls, QUBIT* Qcontrols[], QUBIT* Qtarget)  
   {
       //Currently we only have CH
       assert(numControls == 1);
       sim->append(Simulation::CH(to_qubit(Qcontrols[0]), to_qubit(Qtarget)));
   }
-  void ControlledS(long numControls, QUBIT* Qcontrols[], QUBIT* Qtarget) override 
+  void ControlledS(long numControls, QUBIT* Qcontrols[], QUBIT* Qtarget)  
   {
       //S gate is phase shift by PI/2, so we call CU1 (controlled phase rotation)
       //by PI/2, currently we only support 1 control qubit
       assert(numControls == 1);
       sim->append(Simulation::CU1(PI/2, to_qubit(Qcontrols[0]), to_qubit(Qtarget)));
   }
-  void ControlledT(long numControls, QUBIT* Qcontrols[], QUBIT* Qtarget) override 
+  void ControlledT(long numControls, QUBIT* Qcontrols[], QUBIT* Qtarget)  
   {
       //T gate is phase shift by PI/4, so we call CU1 (controlled phase rotation)
       //by PI/4, currently we only support 1 control qubit
       assert(numControls == 1);
       sim->append(Simulation::CU1(PI/4, to_qubit(Qcontrols[0]), to_qubit(Qtarget)));
   }
-  void ControlledSWAP(long numControls, QUBIT* Qcontrols[], QUBIT* Qtarget1, QUBIT* Qtarget2) override 
+  void ControlledSWAP(long numControls, QUBIT* Qcontrols[], QUBIT* Qtarget1, QUBIT* Qtarget2)  
   {
       //currently we only support 1 control qubit
       assert(numControls == 1);
       sim->append(Simulation::CSWAP(to_qubit(Qcontrols[0]), to_qubit(Qtarget1),
                   to_qubit(Qtarget2)));
   }
-  void ControlledClifford(long numControls, QUBIT* controls[], CliffordId cliffordId, PauliId pauli,
-                          QUBIT* target) override 
-  {
-      throw std::logic_error("ControlledClifford not_implemented");
-  }
   void ControlledUnitary(long numControls, QUBIT* controls[], long numTargets,
-                         double** unitary, QUBIT* targets[]) override 
+                         double** unitary, QUBIT* targets[])  
   {
       //we have CU3
       throw std::logic_error("ControlledUnitary not_implemented");
   }
   void ControlledR(long numControls, QUBIT* Qcontrols[], PauliId axis,
-                   QUBIT* Qtarget, double theta) override 
+                   QUBIT* Qtarget, double theta)  
   {
       //currently we only support 1 control qubit
       assert(numControls == 1);
@@ -338,14 +294,14 @@ class DM_QirSimulator final : public quantum::CQuantumApiBase
       }
   }
   void ControlledRFraction(long numControls, QUBIT* Qcontrols[], PauliId axis,
-                           QUBIT* Qtarget, long numerator, long power) override 
+                           QUBIT* Qtarget, long numerator, long power)  
   {
       //currently we only support 1 control qubit
       assert(numControls == 1);
       ControlledR(numControls, Qcontrols, axis, Qtarget,  
               fraction_to_theta(numerator, power));
   }
-  void ControlledR1(long numControls, QUBIT* Qcontrols[], QUBIT* Qtarget, double theta) override 
+  void ControlledR1(long numControls, QUBIT* Qcontrols[], QUBIT* Qtarget, double theta)  
   {
       //currently we only support 1 control qubit
       assert(numControls == 1);
@@ -356,7 +312,7 @@ class DM_QirSimulator final : public quantum::CQuantumApiBase
       ControlledR(numControls, Qcontrols, PauliId_I, Qtarget, -theta);
   }
   void ControlledR1Fraction(long numControls, QUBIT* Qcontrols[],
-          QUBIT* Qtarget, long numerator, long power) override 
+          QUBIT* Qtarget, long numerator, long power)  
   {
       //currently we only support 1 control qubit
       assert(numControls == 1);
@@ -364,31 +320,31 @@ class DM_QirSimulator final : public quantum::CQuantumApiBase
               fraction_to_theta(numerator, power));
   }
   void ControlledExp(long numControls, QUBIT* Qcontrols[], long numTargets,
-          PauliId paulis[], QUBIT* Qtargets[], double theta) override 
+          PauliId paulis[], QUBIT* Qtargets[], double theta)  
   {
       throw std::logic_error("ControlledExp not_implemented");
   }
   void ControlledExpFraction( long numControls, QUBIT* Qcontrols[], long numTargets, PauliId paulis[],
-        QUBIT* Qtargets[], long numerator, long power) override 
+        QUBIT* Qtargets[], long numerator, long power)  
   {
       throw std::logic_error("ControlledExpFraction not_implemented");
   }
 
-  void SAdjoint(QUBIT* Qtarget) override 
+  void SAdjoint(QUBIT* Qtarget)  
   {
       sim->append(Simulation::SDG(to_qubit(Qtarget)));
   }
-  void TAdjoint(QUBIT* Qtarget) override 
+  void TAdjoint(QUBIT* Qtarget)  
   {
       sim->append(Simulation::TDG(to_qubit(Qtarget)));
   }
   void ControlledSAdjoint(long numControls, QUBIT* Qcontrols[],
-          QUBIT* Qtarget) override 
+          QUBIT* Qtarget)  
   {
       throw std::logic_error("Controlled SDG not_implemented");
   }
   void ControlledTAdjoint(long numControls, QUBIT* Qcontrols[],
-          QUBIT* Qtarget) override 
+          QUBIT* Qtarget)  
   {
       throw std::logic_error("Controlled TDG not_implemented");
   }
@@ -413,33 +369,25 @@ class DM_QirSimulator final : public quantum::CQuantumApiBase
   }
 
   bool Assert(long numTargets, PauliId bases[], QUBIT* targets[],
-          Result result, const char* failureMessage) override
+          Result result, const char* failureMessage) 
   {
       return false;  // no-op
   }
   bool AssertProbability(long numTargets, PauliId bases[],
           QUBIT* targets[], double probabilityOfZero,
-          double precision, const char* failureMessage) override
+          double precision, const char* failureMessage) 
   {
       return false;  // no-op
   }
-
   // Qubit management
-  QUBIT* AllocateQubit() override 
+  QUBIT* AllocateQubit()  
   {
-      //printf("allocating 1-more qubit at %u out of %u qubits\n", 
-      //new_qubit_pos, n_qubits);
-      //fflush(stdout);
-      //assert(new_qubit_pos < n_qubits);
+      assert(new_qubit_pos < n_qubits);
       return from_qubit(new_qubit_pos++);
   }
-  void ReleaseQubit(QUBIT* Q) override 
+  void ReleaseQubit(QUBIT* Q)  
   {
       //We currently do not actually release a qubit
-      //throw std::logic_error("ReleaseQubit() not_implemented");
-      //printf("trying to release a qubit at %u out of %u qubits\n",
-      //to_qubit(Q), n_qubits);
-      //fflush(stdout);
       new_qubit_pos--;
       if (new_qubit_pos == 0)
       {
@@ -449,10 +397,8 @@ class DM_QirSimulator final : public quantum::CQuantumApiBase
   }
 
   // Results
-  Result M(QUBIT* Qtarget) override 
+  Result M(QUBIT* Qtarget)  
   {
-      //std::string cir_str = sim->dump();
-      //std::cout << cir_str;
       if (is_new_sim)
       {
           is_new_sim = false;
@@ -468,35 +414,32 @@ class DM_QirSimulator final : public quantum::CQuantumApiBase
               total_sim_time += timer.measure();
           }
           res_dm = sim->measure(1);
-          //sim->clear_circuit();
-          //print_measurement(res_dm, n_qubits, 1);
       }
       bool b_val = ((res_dm[0] >> to_qubit(Qtarget)) & 0x1);
-      //return (b_val? one : zero);
       return reinterpret_cast<Result>(b_val);
   }
   Result Measure(long numBases, PauliId bases[], long numTargets,
-          QUBIT* targets[]) override 
+          QUBIT* targets[])  
   {
       throw std::logic_error("Measure not_implemented");
   }
-  void Reset(QUBIT* Qtarget) override 
+  void Reset(QUBIT* Qtarget)  
   {
       throw std::logic_error("Reset not_implemented");
   }
-  void ReleaseResult(Result result) override 
+  void ReleaseResult(Result result)  
   {
       // throw std::logic_error("not_implemented");
       return; // no-op
   }
-  TernaryBool AreEqualResults(Result r1, Result r2) override {
-      return r1 == r2 ? TernaryBool_True : TernaryBool_False;
+  bool AreEqualResults(Result r1, Result r2)  {
+      return r1 == r2 ? true : false;
   }
-  ResultValue GetResultValue(Result result) override {
+  ResultValue GetResultValue(Result result)  {
       return (result == one) ? Result_One : Result_Zero;
   }
-  Result UseZero() override { return zero; }
-  Result UseOne() override { return one; }
+  Result UseZero()  { return zero; }
+  Result UseOne()  { return one; }
 
  private:
   Simulation* sim;
@@ -510,10 +453,9 @@ class DM_QirSimulator final : public quantum::CQuantumApiBase
   cpu_timer timer;
 };
 
-//extern "C" quantum::IQuantumApi* UseQAPI() 
-extern "C" quantum::IQuantumApi* UseQuantumApi() 
+extern "C" Microsoft::Quantum::ISimulator* GetDMSim() 
 {
-    static quantum::IQuantumApi* g_iqa = nullptr;
+    static Microsoft::Quantum::ISimulator* g_iqa = nullptr;
     if(!g_iqa) {
         g_iqa = new DM_QirSimulator{};
         // ResultOne = g_iqa->UseOne();
