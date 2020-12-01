@@ -22,7 +22,7 @@
 #include <math.h>
 #include <string.h>
 #include <cstdlib>
-//#include <immintrin.h>
+#include <immintrin.h>
 
 #include "config.hpp"
 
@@ -1113,7 +1113,7 @@ void X_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, const Idx
     dm_imag[pos1] = el0_imag;
     OP_TAIL;
 
-    /*  
+    /* 
     for (IdxType i=0; i<((sim->half_dim)<<(sim->lg2_m_cpu)); i+=1)
     { 
         IdxType col = (i >> (sim->n_qubits-1)); 
@@ -1131,18 +1131,17 @@ void X_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, const Idx
         dm_imag[pos0] = el1_imag;
         dm_real[pos1] = el0_real; 
         dm_imag[pos1] = el0_imag;
-    }
-    */
+    } */
 
-    /*
-    typedef union{ __m256i m; unsigned u[8]; } m256_i;
-    m256_i in,out0,out1;
+    /* 
+    typedef union{ __m256i m; __m128i n[2]; unsigned u[8]; } m256_i;
+    m256_i in, pos0, pos1;
     in.u[0] = 0; in.u[1] = 1; in.u[2] = 2; in.u[3] = 3;
     in.u[4] = 4; in.u[5] = 5; in.u[6] = 6; in.u[7] = 7;
 
-    for (IdxType i=0; i<((sim->half_dim)<<(sim->lg2_m_cpu)); i+=VEC)
+    for (IdxType i=0; i<((sim->half_dim)<<(sim->lg2_m_cpu)); i+=8)
     { 
-        __m256i idx, col, tmp1, tmp2, tmp3, outer, inner, offset, pos0, pos1;
+        __m256i idx, col, tmp1, tmp2, tmp3, outer, inner, offset;
         idx = _mm256_set1_epi32(i);
         idx = _mm256_add_epi32(idx, in.m);
 
@@ -1155,31 +1154,48 @@ void X_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, const Idx
         inner = _mm256_and_si256(idx,tmp1); //IdxType inner =  (i & ((1<<qubit)-1)); 
 
         offset = _mm256_slli_epi32(outer, qubit+1); //IdxType offset = (outer << (qubit+1)); 
-        pos0 = _mm256_slli_epi32(col, sim->n_qubits);
+        tmp1 = _mm256_slli_epi32(col, sim->n_qubits);
 
-        tmp2 = _mm256_add_epi32(pos0, offset);
-        pos0 = _mm256_add_epi32(tmp2, inner); //IdxType pos0 = (col << (sim->n_qubits)) + offset + inner; 
+        tmp2 = _mm256_add_epi32(tmp1, offset);
+        pos0.m = _mm256_add_epi32(tmp2, inner); //IdxType pos0 = (col << (sim->n_qubits)) + offset + inner; 
 
         tmp1 = _mm256_set1_epi32(1<<qubit);
-        pos1 = _mm256_add_epi32(pos0, tmp1); //IdxType pos1 = pos0 + (1<<qubit); 
+        pos1.m = _mm256_add_epi32(pos0.m, tmp1); //IdxType pos1 = pos0 + (1<<qubit); 
 
-        out0.m = pos0;
-        out1.m = pos1;
+        typedef union{ __m256d m; double u[4]; } m256_d;
+        m256_d el0_real_p0, el0_imag_p0, el1_real_p0, el1_imag_p0;
+        m256_d el0_real_p1, el0_imag_p1, el1_real_p1, el1_imag_p1;
 
-        for (unsigned j=0; j<8; j++)
+        el0_real_p0.m = _mm256_i32gather_pd(dm_real, pos0.n[0], 8);
+        el0_imag_p0.m = _mm256_i32gather_pd(dm_imag, pos0.n[0], 8);
+        el1_real_p0.m = _mm256_i32gather_pd(dm_real, pos1.n[0], 8);
+        el1_imag_p0.m = _mm256_i32gather_pd(dm_imag, pos1.n[0], 8);
+
+        el0_real_p1.m = _mm256_i32gather_pd(dm_real, pos0.n[1], 8);
+        el0_imag_p1.m = _mm256_i32gather_pd(dm_imag, pos0.n[1], 8);
+        el1_real_p1.m = _mm256_i32gather_pd(dm_real, pos1.n[1], 8);
+        el1_imag_p1.m = _mm256_i32gather_pd(dm_imag, pos1.n[1], 8);
+
+        for (unsigned j=0; j<4; j++)
         {
-            const ValType el0_real = dm_real[out0.u[j]]; 
-            const ValType el0_imag = dm_imag[out0.u[j]];
-            const ValType el1_real = dm_real[out1.u[j]]; 
-            const ValType el1_imag = dm_imag[out1.u[j]];
-            dm_real[out0.u[j]] = el1_real; 
-            dm_imag[out0.u[j]] = el1_imag;
-            dm_real[out1.u[j]] = el0_real; 
-            dm_imag[out1.u[j]] = el0_imag;
-        }
-    }
-    */
+            dm_real[pos0.u[0+j]] = el1_real_p0.u[j]; 
+            dm_imag[pos0.u[0+j]] = el1_imag_p0.u[j];
+            dm_real[pos1.u[0+j]] = el0_real_p0.u[j]; 
+            dm_imag[pos1.u[0+j]] = el0_imag_p0.u[j];
 
+            dm_real[pos0.u[4+j]] = el1_real_p1.u[j]; 
+            dm_imag[pos0.u[4+j]] = el1_imag_p1.u[j];
+            dm_real[pos1.u[4+j]] = el0_real_p1.u[j]; 
+            dm_imag[pos1.u[4+j]] = el0_imag_p1.u[j];
+        }
+        
+        //_mm256_i32scatter_pd(dm_real, pos0.n[0], el1_real, 8);
+        //_mm256_i32scatter_pd(dm_imag, pos0.n[0], el1_imag, 8);
+        //_mm256_i32scatter_pd(dm_real, pos1.n[0], el0_real, 8);
+        //_mm256_i32scatter_pd(dm_imag, pos1.n[0], el0_imag, 8);
+
+    }
+ */
 }
 
 

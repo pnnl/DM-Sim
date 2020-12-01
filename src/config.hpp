@@ -19,7 +19,7 @@
 //#define CPU
 
 //Track per circuit execution performance
-//#define PRINT_MEA_PER_CIRCUIT
+#define PRINT_MEA_PER_CIRCUIT
 
 //Error check for all CUDA Runtim-API calls and Kernel check
 #define CUDA_ERROR_CHECK
@@ -44,9 +44,9 @@ using ValType = double;
 // constant value of 1/sqrt(2)
 #define S2I 0.70710678118654752440 
 //// avx bitwidth for CPU
-//#define AVX 256
+#define AVX 256
 //// vector length
-//#define VEC ((AVX)/sizeof(IdxType))
+#define VEC ((AVX)/sizeof(IdxType))
 
 }; //namespace DMSim
 
