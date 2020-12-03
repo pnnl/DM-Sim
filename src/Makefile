@@ -11,8 +11,7 @@
 #
 # ----------------- For CPU: --------------- 
 # For AVX support:
-# AVX256: -mavx2
-# AVX512: -mavx512
+# AVX512: -mavx512f
 #
 # ----------------- For NVIDIA GPU: --------------- 
 # Update -arch with corresponding compute capability:
