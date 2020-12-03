@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------
 // DM-Sim: Density-Matrix Quantum Circuit Simulation Environment
-// Version 2.2
+// Version 2.3
 // Ang Li, Scientist, Pacific Northwest National Laboratory(PNNL), U.S.
 // Homepage: http://www.angliphd.com
 // GitHub repo: http://www.github.com/pnnl/DM-Sim
@@ -24,6 +24,9 @@
 //Error check for all CUDA Runtim-API calls and Kernel check
 #define CUDA_ERROR_CHECK
 
+//Accelerate by AVX512
+#define USE_AVX512
+
 // ================================= Configurations =====================================
 namespace DMSim 
 {
@@ -44,7 +47,7 @@ using ValType = double;
 // constant value of 1/sqrt(2)
 #define S2I 0.70710678118654752440 
 //// avx bitwidth for CPU
-#define AVX 256
+#define AVX 512
 //// vector length
 #define VEC ((AVX)/sizeof(IdxType))
 

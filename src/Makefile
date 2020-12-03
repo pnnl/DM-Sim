@@ -1,6 +1,6 @@
 # ---------------------------------------------------------------------------
 # DM-Sim: Density-Matrix Quantum Circuit Simulation Environement 
-# Version 2.2
+# Version 2.3
 # Ang Li, Scientist, Pacific Northwest National Laboratory(PNNL), U.S.
 # Homepage: http://www.angliphd.com
 # GitHub repo: http://www.github.com/pnnl/DM-Sim
@@ -20,6 +20,9 @@
 # Volta  V100 GPU: sm_70
 # Turing T4   GPU: sm_75
 # Ampere A100 GPU: sm_80
+#
+# ----------------- For CPU AVX512 Acceleration -------------
+#  Use -mavx512f
 # ---------------------------------------------------------------------------
 
 # GPU Compiler
@@ -28,11 +31,11 @@ NVCC_FLAGS = -O3 -arch=sm_70 -m64 -std=c++11 -rdc=true --compiler-options -fPIC
 
 # CPU Compiler
 CC = g++
-CC_FLAGS = -O3 -m64 -std=c++11 -fPIC
+CC_FLAGS = -O3 -mavx512f -std=c++11 -fPIC
 
 # MPI Compiler
 MPICC = mpicxx
-MPICC_FLAGS = -O3 -m64 -std=c++11 -fPIC
+MPICC_FLAGS = -O3 -mavx512f -std=c++11 -fPIC
 #MPI_INC = /share/apps/openmpi/3.1.3/gcc/7.3.0/include/ 
 MPI_INC = /usr/include/mpi/
 
@@ -74,12 +77,10 @@ QIR_BRIDGE_FLAGS = -I. -I$(QIR_BRIDGE_PUBLIC) -I$(QIR_BRIDGE_TEST) -L$(QIR_BRIDG
 # Linking
 LIBS = -lm
 
-#OBJ = adder_n10_cpu_omp adder_n10_nvgpu_omp adder_n10_cpu_mpi adder_n10_nvgpu_mpi 
+OBJ = adder_n10_cpu_omp adder_n10_nvgpu_omp adder_n10_cpu_mpi adder_n10_nvgpu_mpi 
 #OBJ = dmsim_py_nvgpu_omp.so dmsim_py_cpu_omp.so 
 #OBJ = dmsim_py_nvgpu_mpi.so dmsim_py_cpu_mpi.so 
-
-OBJ = vqe_qir_omp
-#OBJ = vqe_qir_mpi 
+#OBJ = vqe_qir_omp vqe_qir_mpi 
 
 all: $(OBJ) 
 

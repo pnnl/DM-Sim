@@ -6,7 +6,10 @@ A Density Matrix Quantum Simulation Environment for Single-GPU/CPU, Single-Node-
 
 ## Current version
 
-Latest version: **2.2**
+Latest version: **2.3**
+
+#### Version-2.3 Updates:
+ - Add AVX512 acceleration support for the CPU-backend. Specify USE_AVX512 in config.hpp.
 
 #### Version-2.2 Updates:
  - Add CPU backend for both OpenMP and MPI so that DM-Sim can support system without GPUs. Verified the C++/Python APIs, QDK/QIR on Summit.

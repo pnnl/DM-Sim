@@ -24,8 +24,7 @@
 #include <string.h>
 #include <cstdlib>
 
-//#include <immintrin.h>
-//#include <immintrin.h>
+#include <immintrin.h>
 
 #include "config.hpp"
 
@@ -899,6 +898,11 @@ void simulation_kernel(Simulation* sim, bool isforward)
             IdxType pos0 = col * (sim->dim) + offset + inner; \
             IdxType pos1 = pos0 + inner_bound; 
 
+//Define MG-BSP machine operation footer
+#define OP_TAIL  } 
+
+#ifndef USE_AVX512 //Without AVX512 Acceleration
+
 //Define MG-BSP machine operation header (Optimized version)
 #define OP_HEAD \
     const int tid = 0; \
@@ -910,15 +914,6 @@ void simulation_kernel(Simulation* sim, bool isforward)
             IdxType offset = (outer << (qubit+1)); \
             IdxType pos0 = (col << (sim->n_qubits)) + offset + inner; \
             IdxType pos1 = pos0 + (1<<qubit); 
-
-            //#define OP_HHEAD \
-            //for (IdxType i=0; i<((sim->half_dim)<<(sim->lg2_m_cpu));\
-            //i+=VEC){ \
-
-
-
-//Define MG-BSP machine operation footer
-#define OP_TAIL  } 
 
 //============== Unified 1-qubit Gate ================
 void C1_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, 
@@ -942,75 +937,6 @@ void C1_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
     dm_imag[pos1] = (e2_real * el0_imag) + (e2_imag * el0_real)
                    +(e3_real * el1_imag) + (e3_imag * el1_real);
     OP_TAIL;
-}
-
-//============== Unified 2-qubit Gate ================
-void C2_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, 
-        const ValType e00_real, const ValType e00_imag,
-        const ValType e01_real, const ValType e01_imag,
-        const ValType e02_real, const ValType e02_imag,
-        const ValType e03_real, const ValType e03_imag,
-        const ValType e10_real, const ValType e10_imag,
-        const ValType e11_real, const ValType e11_imag,
-        const ValType e12_real, const ValType e12_imag,
-        const ValType e13_real, const ValType e13_imag,
-        const ValType e20_real, const ValType e20_imag,
-        const ValType e21_real, const ValType e21_imag,
-        const ValType e22_real, const ValType e22_imag,
-        const ValType e23_real, const ValType e23_imag,
-        const ValType e30_real, const ValType e30_imag,
-        const ValType e31_real, const ValType e31_imag,
-        const ValType e32_real, const ValType e32_imag,
-        const ValType e33_real, const ValType e33_imag,
-        const IdxType qubit1, const IdxType qubit2)
-{
-    const int tid = 0;
-    const IdxType outer_bound1 = (1 << ( (sim->n_qubits) - qubit1 - 1)); 
-    const IdxType inner_bound1 = (1 << qubit1); 
-    const IdxType outer_bound2 = (1 << ( (sim->n_qubits) - qubit2 - 1)); 
-    const IdxType inner_bound2 = (1 << qubit2); 
-    for (IdxType i = tid; i < outer_bound1* inner_bound2 * (sim->m_cpu); i++)
-    { 
-        IdxType col = i / (inner_bound1 * outer_bound1); 
-        IdxType outer1 = (i % (inner_bound1 * outer_bound1)) / inner_bound1; 
-        IdxType inner1 =  i % inner_bound1; 
-        IdxType offset1 = (2 * outer1) * inner_bound1; 
-        IdxType pos0 = col * (sim->dim) + offset1 + inner1; 
-        IdxType pos1 = pos0 + inner_bound1; 
-        const ValType el0_real = dm_real[pos0]; 
-        const ValType el0_imag = dm_imag[pos0];
-        const ValType el1_real = dm_real[pos1]; 
-        const ValType el1_imag = dm_imag[pos1];
-
-        for (IdxType i = tid; i < outer_bound2* inner_bound2; i+=1)
-        { 
-            IdxType outer2 = i / inner_bound2; 
-            IdxType inner2 = i % inner_bound2;
-            IdxType offset2 = (2 * outer2) * inner_bound2; 
-            IdxType pos2 = col * (sim->dim) + offset2 + inner2; 
-            IdxType pos3 = pos2 + inner_bound2; 
-            const ValType el2_real = dm_real[pos2]; 
-            const ValType el2_imag = dm_imag[pos2];
-            const ValType el3_real = dm_real[pos3]; 
-            const ValType el3_imag = dm_imag[pos3];
-            dm_real[pos0] = (e00_real * el0_real) - (e00_imag * el0_imag)
-                           +(e01_real * el1_real) - (e01_imag * el1_imag)
-                           +(e02_real * el2_real) - (e02_imag * el2_imag)
-                           +(e03_real * el3_real) - (e03_imag * el3_imag);
-            dm_real[pos1] = (e10_real * el0_real) - (e10_imag * el0_imag)
-                           +(e11_real * el1_real) - (e11_imag * el1_imag)
-                           +(e12_real * el2_real) - (e12_imag * el2_imag)
-                           +(e13_real * el3_real) - (e13_imag * el3_imag);
-            dm_real[pos1] = (e20_real * el0_real) - (e20_imag * el0_imag)
-                           +(e21_real * el1_real) - (e21_imag * el1_imag)
-                           +(e22_real * el2_real) - (e22_imag * el2_imag)
-                           +(e23_real * el3_real) - (e23_imag * el3_imag);
-            dm_real[pos1] = (e30_real * el0_real) - (e30_imag * el0_imag)
-                           +(e31_real * el1_real) - (e31_imag * el1_imag)
-                           +(e32_real * el2_real) - (e32_imag * el2_imag)
-                           +(e33_real * el3_real) - (e33_imag * el3_imag);
-        }
-    }
 }
 
 //============== CX Gate ================
@@ -1073,77 +999,7 @@ void X_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, const Idx
     dm_real[pos1] = el0_real; 
     dm_imag[pos1] = el0_imag;
     OP_TAIL;
-
-    /*  
-    for (IdxType i=0; i<((sim->half_dim)<<(sim->lg2_m_cpu)); i+=1)
-    { 
-        IdxType col = (i >> (sim->n_qubits-1)); 
-        IdxType outer = ((i & ((sim->half_dim)-1)) >> qubit); 
-        IdxType inner =  (i & ((1<<qubit)-1)); 
-        IdxType offset = (outer << (qubit+1)); 
-        IdxType pos0 = (col << (sim->n_qubits)) + offset + inner; 
-        IdxType pos1 = pos0 + (1<<qubit); 
-
-        const ValType el0_real = dm_real[pos0]; 
-        const ValType el0_imag = dm_imag[pos0];
-        const ValType el1_real = dm_real[pos1]; 
-        const ValType el1_imag = dm_imag[pos1];
-        dm_real[pos0] = el1_real; 
-        dm_imag[pos0] = el1_imag;
-        dm_real[pos1] = el0_real; 
-        dm_imag[pos1] = el0_imag;
-    }
-    */
-
-    /*
-    typedef union{ __m256i m; unsigned u[8]; } m256_i;
-    m256_i in,out0,out1;
-    in.u[0] = 0; in.u[1] = 1; in.u[2] = 2; in.u[3] = 3;
-    in.u[4] = 4; in.u[5] = 5; in.u[6] = 6; in.u[7] = 7;
-
-    for (IdxType i=0; i<((sim->half_dim)<<(sim->lg2_m_cpu)); i+=VEC)
-    { 
-        __m256i idx, col, tmp1, tmp2, tmp3, outer, inner, offset, pos0, pos1;
-        idx = _mm256_set1_epi32(i);
-        idx = _mm256_add_epi32(idx, in.m);
-
-        col = _mm256_srli_epi32(idx,sim->n_qubits-1); //IdxType col = (i >> (sim->n_qubits-1)); 
-        tmp1 = _mm256_set1_epi32((sim->half_dim)-1);
-        tmp2 = _mm256_and_si256(idx,tmp1); 
-        outer = _mm256_srli_epi32(tmp2, qubit); //IdxType outer = ((i & ((sim->half_dim)-1)) >> qubit); 
-
-        tmp1 = _mm256_set1_epi32((1<<qubit)-1);
-        inner = _mm256_and_si256(idx,tmp1); //IdxType inner =  (i & ((1<<qubit)-1)); 
-
-        offset = _mm256_slli_epi32(outer, qubit+1); //IdxType offset = (outer << (qubit+1)); 
-        pos0 = _mm256_slli_epi32(col, sim->n_qubits);
-
-        tmp2 = _mm256_add_epi32(pos0, offset);
-        pos0 = _mm256_add_epi32(tmp2, inner); //IdxType pos0 = (col << (sim->n_qubits)) + offset + inner; 
-
-        tmp1 = _mm256_set1_epi32(1<<qubit);
-        pos1 = _mm256_add_epi32(pos0, tmp1); //IdxType pos1 = pos0 + (1<<qubit); 
-
-        out0.m = pos0;
-        out1.m = pos1;
-
-        for (unsigned j=0; j<8; j++)
-        {
-            const ValType el0_real = dm_real[out0.u[j]]; 
-            const ValType el0_imag = dm_imag[out0.u[j]];
-            const ValType el1_real = dm_real[out1.u[j]]; 
-            const ValType el1_imag = dm_imag[out1.u[j]];
-            dm_real[out0.u[j]] = el1_real; 
-            dm_imag[out0.u[j]] = el1_imag;
-            dm_real[out1.u[j]] = el0_real; 
-            dm_imag[out1.u[j]] = el0_imag;
-        }
-    }
-    */
-
 }
-
-
 
 //============== Y Gate ================
 //Pauli gate: bit and phase flip
@@ -1220,15 +1076,6 @@ void SRN_GATE(const Simulation* sim, ValType* dm_real,
     dm_real[pos1] = 0.5*( el0_real + el1_real);
     dm_imag[pos1] = 0.5*(-el0_imag + el1_imag);
     OP_TAIL;
-}
-
-//============== ID Gate ================
-/** ID = [1 0]
-         [0 1]
-*/
-void ID_GATE(const Simulation* sim, ValType* dm_real,
-        ValType* dm_imag, const IdxType qubit)
-{
 }
 
 //============== R Gate ================
@@ -1330,6 +1177,692 @@ void D_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
     OP_TAIL;
 }
 
+//============== RX Gate ================
+//Rotation around X-axis
+void RX_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+       const ValType theta, const IdxType qubit)
+{
+    ValType rx_real = cos(theta/2.0);
+    ValType rx_imag = -sin(theta/2.0);
+    OP_HEAD;
+    const ValType el0_real = dm_real[pos0]; 
+    const ValType el0_imag = dm_imag[pos0];
+    const ValType el1_real = dm_real[pos1]; 
+    const ValType el1_imag = dm_imag[pos1];
+    dm_real[pos0] = (rx_real * el0_real) - (rx_imag * el1_imag);
+    dm_imag[pos0] = (rx_real * el0_imag) + (rx_imag * el1_real);
+    dm_real[pos1] =  - (rx_imag * el0_imag) +(rx_real * el1_real);
+    dm_imag[pos1] =  + (rx_imag * el0_real) +(rx_real * el1_imag);
+    OP_TAIL;
+}
+
+//============== RY Gate ================
+//Rotation around Y-axis
+void RY_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+        const ValType theta, const IdxType qubit)
+{
+    ValType e0_real = cos(theta/2.0);
+    ValType e1_real = -sin(theta/2.0);
+    ValType e2_real = sin(theta/2.0);
+    ValType e3_real = cos(theta/2.0);
+
+    OP_HEAD;
+    const ValType el0_real = dm_real[pos0]; 
+    const ValType el0_imag = dm_imag[pos0];
+    const ValType el1_real = dm_real[pos1]; 
+    const ValType el1_imag = dm_imag[pos1];
+    dm_real[pos0] = (e0_real * el0_real) +(e1_real * el1_real);
+    dm_imag[pos0] = (e0_real * el0_imag) +(e1_real * el1_imag);
+    dm_real[pos1] = (e2_real * el0_real) +(e3_real * el1_real);
+    dm_imag[pos1] = (e2_real * el0_imag) +(e3_real * el1_imag);
+    OP_TAIL;
+}
+
+//============== W Gate ================
+//W gate: e^(-i*pi/4*X)
+/** W = [s2i    -s2i*i]
+        [-s2i*i s2i   ]
+*/
+void W_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, const IdxType qubit)
+{
+    OP_HEAD;
+    const ValType el0_real = dm_real[pos0]; 
+    const ValType el0_imag = dm_imag[pos0];
+    const ValType el1_real = dm_real[pos1]; 
+    const ValType el1_imag = dm_imag[pos1];
+    dm_real[pos0] = S2I * (el0_real + el1_imag);
+    dm_imag[pos0] = S2I * (el0_imag - el1_real);
+    dm_real[pos1] = S2I * (el0_imag + el1_real);
+    dm_imag[pos1] = S2I * (-el0_real + el1_imag);
+    OP_TAIL;
+}
+
+#else //With AVX512 Acceleration
+
+//Define MG-BSP machine operation header (AVX512 Optimized version)
+#define OP_HEAD \
+    __m256i idx=_mm256_set_epi32(0,1,2,3,4,5,6,7); \
+    const __m256i inc=_mm256_set1_epi32(8); \
+    const __m256i cons0 = _mm256_set1_epi32((sim->half_dim)-1); \
+    const __m256i cons1 = _mm256_set1_epi32((1<<qubit)-1); \
+    const __m256i cons2 = _mm256_set1_epi32(1<<qubit); \
+    for (IdxType i=0; i<((sim->half_dim)<<(sim->lg2_m_cpu)); i+=8, idx=_mm256_add_epi32(idx,inc)) \
+    { \
+        __m256i col, tmp, outer, inner, offset, pos0, pos1; \
+        col = _mm256_srli_epi32(idx,sim->n_qubits-1); /*IdxType col = (i >> (sim->n_qubits-1));*/ \
+        tmp = _mm256_and_si256(idx,cons0); \
+        outer = _mm256_srli_epi32(tmp,qubit); /*IdxType outer = ((i & ((sim->half_dim)-1)) >> qubit);*/ \
+        inner = _mm256_and_si256(idx,cons1); /*IdxType inner =  (i & ((1<<qubit)-1));*/ \
+        offset = _mm256_slli_epi32(outer, qubit+1); /*IdxType offset = (outer << (qubit+1));*/ \
+        tmp = _mm256_slli_epi32(col, sim->n_qubits);\
+        tmp = _mm256_add_epi32(tmp, offset);\
+        pos0 = _mm256_add_epi32(tmp, inner); /*IdxType pos0 = (col << (sim->n_qubits)) + offset + inner;*/ \
+        pos1 = _mm256_add_epi32(pos0, cons2); /*IdxType pos1 = pos0 + (1<<qubit);*/ 
+
+//============== Unified 1-qubit Gate ================
+void C1_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, 
+        const ValType e0_real, const ValType e0_imag,
+        const ValType e1_real, const ValType e1_imag,
+        const ValType e2_real, const ValType e2_imag,
+        const ValType e3_real, const ValType e3_imag,
+        const IdxType qubit)
+{
+    const __m512d e0_real_v = _mm512_set1_pd(e0_real);
+    const __m512d e0_imag_v = _mm512_set1_pd(e0_imag);
+    const __m512d e1_real_v = _mm512_set1_pd(e1_real);
+    const __m512d e1_imag_v = _mm512_set1_pd(e1_imag);
+    const __m512d e2_real_v = _mm512_set1_pd(e2_real);
+    const __m512d e2_imag_v = _mm512_set1_pd(e2_imag);
+    const __m512d e3_real_v = _mm512_set1_pd(e3_real);
+    const __m512d e3_imag_v = _mm512_set1_pd(e3_imag);
+
+    OP_HEAD;
+
+    const __m512d el0_real = _mm512_i32gather_pd(pos0, dm_real, 8);
+    const __m512d el0_imag = _mm512_i32gather_pd(pos0, dm_imag, 8);
+    const __m512d el1_real = _mm512_i32gather_pd(pos1, dm_real, 8);
+    const __m512d el1_imag = _mm512_i32gather_pd(pos1, dm_imag, 8);
+
+    __m512d tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6;
+    
+    //dm_real[pos0] = (e0_real * el0_real) - (e0_imag * el0_imag)
+    //               +(e1_real * el1_real) - (e1_imag * el1_imag);
+    tmp0 = _mm512_mul_pd(e0_real_v, el0_real);
+    tmp1 = _mm512_mul_pd(e0_imag_v, el0_imag);
+    tmp2 = _mm512_mul_pd(e1_real_v, el1_real);
+    tmp3 = _mm512_mul_pd(e1_imag_v, el1_imag);
+    tmp4 = _mm512_sub_pd(tmp0, tmp1);
+    tmp5 = _mm512_sub_pd(tmp2, tmp3);
+    tmp6 = _mm512_add_pd(tmp4, tmp5);
+    _mm512_i32scatter_pd(dm_real, pos0, tmp6, 8);
+
+    //dm_imag[pos0] = (e0_real * el0_imag) + (e0_imag * el0_real)
+    //               +(e1_real * el1_imag) + (e1_imag * el1_real);
+    tmp0 = _mm512_mul_pd(e0_real_v, el0_imag);
+    tmp1 = _mm512_mul_pd(e0_imag_v, el0_real);
+    tmp2 = _mm512_mul_pd(e1_real_v, el1_imag);
+    tmp3 = _mm512_mul_pd(e1_imag_v, el1_real);
+    tmp4 = _mm512_add_pd(tmp0, tmp1);
+    tmp5 = _mm512_add_pd(tmp2, tmp3);
+    tmp6 = _mm512_add_pd(tmp4, tmp5);
+    _mm512_i32scatter_pd(dm_imag, pos0, tmp6, 8);
+
+    //dm_real[pos1] = (e2_real * el0_real) - (e2_imag * el0_imag)
+    //               +(e3_real * el1_real) - (e3_imag * el1_imag);
+    tmp0 = _mm512_mul_pd(e2_real_v, el0_real);
+    tmp1 = _mm512_mul_pd(e2_imag_v, el0_imag);
+    tmp2 = _mm512_mul_pd(e3_real_v, el1_real);
+    tmp3 = _mm512_mul_pd(e3_imag_v, el1_imag);
+    tmp4 = _mm512_sub_pd(tmp0, tmp1);
+    tmp5 = _mm512_sub_pd(tmp2, tmp3);
+    tmp6 = _mm512_add_pd(tmp4, tmp5);
+    _mm512_i32scatter_pd(dm_real, pos1, tmp6, 8);
+
+    //dm_imag[pos1] = (e2_real * el0_imag) + (e2_imag * el0_real)
+    //               +(e3_real * el1_imag) + (e3_imag * el1_real);
+    tmp0 = _mm512_mul_pd(e2_real_v, el0_imag);
+    tmp1 = _mm512_mul_pd(e2_imag_v, el0_real);
+    tmp2 = _mm512_mul_pd(e3_real_v, el1_imag);
+    tmp3 = _mm512_mul_pd(e3_imag_v, el1_real);
+    tmp4 = _mm512_add_pd(tmp0, tmp1);
+    tmp5 = _mm512_add_pd(tmp2, tmp3);
+    tmp6 = _mm512_add_pd(tmp4, tmp5);
+    _mm512_i32scatter_pd(dm_imag, pos1, tmp6, 8);
+
+    OP_TAIL;
+}
+
+//============== CX Gate ================
+//Controlled-NOT or CNOT
+/** CX   = [1 0 0 0]
+           [0 1 0 0]
+           [0 0 0 1]
+           [0 0 1 0]
+*/
+
+///*
+
+void CX_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, 
+        const IdxType ctrl, const IdxType qubit)
+{
+    const IdxType q0dim = (1 << max(ctrl, qubit) );
+    const IdxType q1dim = (1 << min(ctrl, qubit) );
+    assert (ctrl != qubit); //Non-cloning
+    const IdxType outer_factor = ((sim->dim) + q0dim + q0dim - 1) >> (max(ctrl,qubit)+1);
+    const IdxType mider_factor = (q0dim + q1dim + q1dim - 1) >> (min(ctrl,qubit)+1);
+    const IdxType inner_factor = q1dim;
+    const IdxType ctrldim = (1 << ctrl);
+
+    const __m256i q0dimx2_v = _mm256_set1_epi32(q0dim+q0dim); 
+    const __m256i q1dimx2_v = _mm256_set1_epi32(q1dim+q1dim); 
+    const __m256i qdimx2_v = _mm256_set1_epi32(q0dim+q1dim); 
+    const __m256i mider_factor_v = _mm256_set1_epi32(mider_factor); 
+    const __m256i factors_v =  _mm256_set1_epi32(inner_factor*mider_factor*outer_factor); 
+    const __m256i ctrldim_v = _mm256_set1_epi32(ctrldim); 
+    const __m256i inner_factor_rm_v = _mm256_set1_epi32(inner_factor-1);
+    const __m256i dim_v = _mm256_set1_epi32(sim->dim);
+    const __m256i inc=_mm256_set1_epi32(8); 
+    __m256i idx=_mm256_set_epi32(0,1,2,3,4,5,6,7); 
+
+    assert(outer_factor*mider_factor <= (1u<<20));
+    const __m256i div_f0_v = _mm256_set1_epi32( (1u<<20)/(outer_factor*mider_factor));
+    const __m256i div_f1_v = _mm256_set1_epi32( (1u<<20)/mider_factor);
+
+    for (IdxType i=0; i<outer_factor*mider_factor*inner_factor*(sim->m_cpu);
+            i+=8, idx=_mm256_add_epi32(idx,inc)) 
+    {
+        __m256i tmp0, tmp1, tmp2, tmp3; 
+        tmp0 = _mm256_srli_epi32(idx,min(ctrl,qubit)); //idx/inner_factor
+        tmp1 = _mm256_mullo_epi32(tmp0,div_f0_v);
+
+        const __m256i col = _mm256_srli_epi32(tmp1,20);// IdxType col = i / (outer_factor * mider_factor * inner_factor);
+        tmp2 = _mm256_mullo_epi32(col, factors_v);
+        const __m256i row = _mm256_sub_epi32(idx, tmp2); // IdxType row = i % (outer_factor * mider_factor * inner_factor);
+
+        // IdxType outer = ((row/inner_factor) / (mider_factor)) * (q0dim+q0dim);
+        tmp0 = _mm256_srli_epi32(row,min(ctrl,qubit)); // =>row/inner_factor
+        tmp1 = _mm256_mullo_epi32(tmp0,div_f1_v);  
+        tmp1 = _mm256_srli_epi32(tmp1,20);// =>(row/inner_factor)/mider_factor
+
+        const __m256i outer = _mm256_mullo_epi32(tmp1,q0dimx2_v);
+        // IdxType mider = ((row/inner_factor) % (mider_factor)) * (q1dim+q1dim);
+        tmp2 = _mm256_mullo_epi32(tmp1,mider_factor_v);  //(row/inner_factor)/mider_factor * mider_factor
+        tmp3 = _mm256_sub_epi32(tmp0,tmp2);//(row/inner_factor) - ((row/inner_factor)/mider_factor * mider_factor)
+        const __m256i mider = _mm256_mullo_epi32(tmp3,q1dimx2_v);
+        // IdxType inner = row % inner_factor;
+        const __m256i inner = _mm256_and_si256(row,inner_factor_rm_v); //row & (inner_factor-1) 
+
+        tmp0 = _mm256_mullo_epi32(col,dim_v);
+        tmp1 = _mm256_add_epi32(tmp0,outer);
+        tmp2 = _mm256_add_epi32(tmp1,mider);
+        tmp3 = _mm256_add_epi32(tmp2,inner);
+
+        const __m256i pos0 = _mm256_add_epi32(tmp3,ctrldim_v);
+        const __m256i pos1 = _mm256_add_epi32(tmp3,qdimx2_v);
+        
+        const __m512d el0_real = _mm512_i32gather_pd(pos0, dm_real, 8);
+        const __m512d el0_imag = _mm512_i32gather_pd(pos0, dm_imag, 8);
+        const __m512d el1_real = _mm512_i32gather_pd(pos1, dm_real, 8);
+        const __m512d el1_imag = _mm512_i32gather_pd(pos1, dm_imag, 8);
+
+        _mm512_i32scatter_pd(dm_real, pos0, el1_real, 8);// dm_real[pos0] = el1_real; 
+        _mm512_i32scatter_pd(dm_imag, pos0, el1_imag, 8);// dm_imag[pos0] = el1_imag;
+        _mm512_i32scatter_pd(dm_real, pos1, el0_real, 8);// dm_real[pos1] = el0_real; 
+        _mm512_i32scatter_pd(dm_imag, pos1, el0_imag, 8);// dm_imag[pos1] = el0_imag;
+    }
+}
+
+//============== X Gate ================
+//Pauli gate: bit flip
+/** X = [0 1]
+        [1 0]
+*/
+void X_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, const IdxType qubit)
+{
+    OP_HEAD;
+
+    const __m512d el0_real = _mm512_i32gather_pd(pos0, dm_real, 8);
+    const __m512d el0_imag = _mm512_i32gather_pd(pos0, dm_imag, 8);
+    const __m512d el1_real = _mm512_i32gather_pd(pos1, dm_real, 8);
+    const __m512d el1_imag = _mm512_i32gather_pd(pos1, dm_imag, 8);
+
+    _mm512_i32scatter_pd(dm_real, pos0, el1_real, 8);
+    _mm512_i32scatter_pd(dm_imag, pos0, el1_imag, 8);
+    _mm512_i32scatter_pd(dm_real, pos1, el0_real, 8);
+    _mm512_i32scatter_pd(dm_imag, pos1, el0_imag, 8);
+
+    OP_TAIL;
+}
+
+//============== Y Gate ================
+//Pauli gate: bit and phase flip
+/** Y = [0 -i]
+        [i  0]
+*/
+void Y_GATE(const Simulation* sim, ValType* dm_real,
+        ValType* dm_imag, const IdxType qubit)
+{
+    OP_HEAD;
+
+    const __m512d el0_real = _mm512_i32gather_pd(pos0, dm_real, 8);
+    const __m512d el0_imag = _mm512_i32gather_pd(pos0, dm_imag, 8);
+    const __m512d el1_real = _mm512_i32gather_pd(pos1, dm_real, 8);
+    const __m512d el1_imag = _mm512_i32gather_pd(pos1, dm_imag, 8);
+
+    _mm512_i32scatter_pd(dm_real, pos0, el1_imag, 8);
+    _mm512_i32scatter_pd(dm_imag, pos0, -el1_real, 8);
+    _mm512_i32scatter_pd(dm_real, pos1, -el0_imag, 8);
+    _mm512_i32scatter_pd(dm_imag, pos1, el0_real, 8);
+
+    OP_TAIL;
+}
+
+//============== Z Gate ================
+//Pauli gate: phase flip
+/** Z = [1  0]
+        [0 -1]
+*/
+void Z_GATE(const Simulation* sim, ValType* dm_real, 
+        ValType* dm_imag, const IdxType qubit)
+{
+    OP_HEAD;
+
+    const __m512d el1_real = _mm512_i32gather_pd(pos1, dm_real, 8);
+    const __m512d el1_imag = _mm512_i32gather_pd(pos1, dm_imag, 8);
+
+    _mm512_i32scatter_pd(dm_real, pos1, -el1_real, 8);
+    _mm512_i32scatter_pd(dm_imag, pos1, -el1_imag, 8);
+
+    OP_TAIL;
+}
+
+//============== H Gate ================
+//Clifford gate: Hadamard
+/** H = 1/sqrt(2) * [1  1]
+                    [1 -1]
+*/
+void H_GATE(const Simulation* sim, ValType* dm_real, 
+        ValType* dm_imag,  const IdxType qubit)
+{
+    const __m512d s2i_v = _mm512_set1_pd(S2I);
+    OP_HEAD;
+
+    const __m512d el0_real = _mm512_i32gather_pd(pos0, dm_real, 8);
+    const __m512d el0_imag = _mm512_i32gather_pd(pos0, dm_imag, 8);
+    const __m512d el1_real = _mm512_i32gather_pd(pos1, dm_real, 8);
+    const __m512d el1_imag = _mm512_i32gather_pd(pos1, dm_imag, 8);
+    __m512d tmp0, tmp1;
+
+    // dm_real[pos0] = S2I*(el0_real + el1_real); 
+    tmp0 = _mm512_add_pd(el0_real, el1_real);
+    tmp1 = _mm512_mul_pd(s2i_v, tmp0);
+    _mm512_i32scatter_pd(dm_real, pos0, tmp1, 8);
+
+    // dm_imag[pos0] = S2I*(el0_imag + el1_imag);
+    tmp0 = _mm512_add_pd(el0_imag, el1_imag);
+    tmp1 = _mm512_mul_pd(s2i_v, tmp0);
+    _mm512_i32scatter_pd(dm_imag, pos0, tmp1, 8);
+
+    // dm_real[pos1] = S2I*(el0_real - el1_real);
+    tmp0 = _mm512_sub_pd(el0_real, el1_real);
+    tmp1 = _mm512_mul_pd(s2i_v, tmp0);
+    _mm512_i32scatter_pd(dm_real, pos1, tmp1, 8);
+
+    // dm_imag[pos1] = S2I*(el0_imag - el1_imag);
+    tmp0 = _mm512_sub_pd(el0_imag, el1_imag);
+    tmp1 = _mm512_mul_pd(s2i_v, tmp0);
+    _mm512_i32scatter_pd(dm_imag, pos1, tmp1, 8);
+
+    OP_TAIL;
+}
+
+//============== SRN Gate ================
+//Square Root of X gate, it maps |0> to ((1+i)|0>+(1-i)|1>)/2,
+//and |1> to ((1-i)|0>+(1+i)|1>)/2
+/** SRN = 1/2 * [1+i 1-i]
+                [1-i 1+1]
+*/
+void SRN_GATE(const Simulation* sim, ValType* dm_real, 
+        ValType* dm_imag, const IdxType qubit)
+{
+    const __m512d half_v = _mm512_set1_pd(0.5);
+    OP_HEAD;
+
+    const __m512d el0_real = _mm512_i32gather_pd(pos0, dm_real, 8);
+    const __m512d el0_imag = _mm512_i32gather_pd(pos0, dm_imag, 8);
+    const __m512d el1_real = _mm512_i32gather_pd(pos1, dm_real, 8);
+    const __m512d el1_imag = _mm512_i32gather_pd(pos1, dm_imag, 8);
+    __m512d tmp0, tmp1;
+
+    // dm_real[pos0] = 0.5*( el0_real + el1_real); 
+    tmp0 = _mm512_add_pd(el0_real, el1_real);
+    tmp1 = _mm512_mul_pd(half_v, tmp0);
+    _mm512_i32scatter_pd(dm_real, pos0, tmp1, 8);
+
+    // dm_imag[pos0] = 0.5*( el0_imag - el1_imag);
+    tmp0 = _mm512_sub_pd(el0_imag, el1_imag);
+    tmp1 = _mm512_mul_pd(half_v, tmp0);
+    _mm512_i32scatter_pd(dm_imag, pos0, tmp1, 8);
+
+    // dm_real[pos1] = 0.5*( el0_real + el1_real);
+    tmp0 = _mm512_add_pd(el0_real, el1_real);
+    tmp1 = _mm512_mul_pd(half_v, tmp0);
+    _mm512_i32scatter_pd(dm_real, pos1, tmp1, 8);
+
+    // dm_imag[pos1] = 0.5*(-el0_imag + el1_imag);
+    tmp0 = _mm512_add_pd(-el0_imag, el1_imag);
+    tmp1 = _mm512_mul_pd(half_v, tmp0);
+    _mm512_i32scatter_pd(dm_imag, pos1, tmp1, 8);
+
+    OP_TAIL;
+}
+
+//============== R Gate ================
+//Phase-shift gate, it leaves |0> unchanged
+//and maps |1> to e^{i\psi}|1>
+/** R = [1 0]
+        [0 0+p*i]
+*/
+void R_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, 
+        const ValType phase, const IdxType qubit)
+{
+    const __m512d phase_v = _mm512_set1_pd(phase);
+    OP_HEAD;
+    const __m512d el1_real = _mm512_i32gather_pd(pos1, dm_real, 8);
+    const __m512d el1_imag = _mm512_i32gather_pd(pos1, dm_imag, 8);
+
+    // dm_real[pos1] = -(el1_imag*phase);
+    __m512d tmp1 = _mm512_mul_pd(-el1_imag, phase_v);
+    _mm512_i32scatter_pd(dm_real, pos1, tmp1, 8);
+
+    // dm_imag[pos1] = el1_real*phase;
+    __m512d tmp2 = _mm512_mul_pd(el1_real, phase_v);
+    _mm512_i32scatter_pd(dm_imag, pos1, tmp2, 8);
+
+    OP_TAIL;
+}
+
+//============== S Gate ================
+//Clifford gate: sqrt(Z) phase gate
+/** S = [1 0]
+        [0 i]
+*/
+void S_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,  const IdxType qubit)
+{
+    OP_HEAD;
+
+    const __m512d el1_real = _mm512_i32gather_pd(pos1, dm_real, 8);
+    const __m512d el1_imag = _mm512_i32gather_pd(pos1, dm_imag, 8);
+
+    _mm512_i32scatter_pd(dm_real, pos1, -el1_imag, 8); // dm_real[pos1] = -el1_imag;
+    _mm512_i32scatter_pd(dm_imag, pos1, el1_real, 8); // dm_imag[pos1] = el1_real;
+
+    OP_TAIL;
+}
+
+//============== SDG Gate ================
+//Clifford gate: conjugate of sqrt(Z) phase gate
+/** SDG = [1  0]
+          [0 -i]
+*/
+void SDG_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,  const IdxType qubit)
+{
+    OP_HEAD;
+
+    const __m512d el1_real = _mm512_i32gather_pd(pos1, dm_real, 8);
+    const __m512d el1_imag = _mm512_i32gather_pd(pos1, dm_imag, 8);
+
+    _mm512_i32scatter_pd(dm_real, pos1, el1_imag, 8); // dm_real[pos1] = el1_imag;
+    _mm512_i32scatter_pd(dm_imag, pos1, -el1_real, 8);// dm_imag[pos1] = -el1_real;
+
+    OP_TAIL;
+}
+
+//============== T Gate ================
+//C3 gate: sqrt(S) phase gate
+/** T = [1 0]
+        [0 s2i+s2i*i]
+*/
+void T_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, const IdxType qubit)
+{
+    const __m512d s2i_v = _mm512_set1_pd(S2I);
+    OP_HEAD;
+
+    const __m512d el1_real = _mm512_i32gather_pd(pos1, dm_real, 8);
+    const __m512d el1_imag = _mm512_i32gather_pd(pos1, dm_imag, 8);
+
+    __m512d tmp0, tmp1;
+
+    // dm_real[pos1] = S2I*(el1_real-el1_imag);
+    tmp0 = _mm512_sub_pd(el1_real, el1_imag);
+    tmp1 = _mm512_mul_pd(s2i_v, tmp0);
+    _mm512_i32scatter_pd(dm_real, pos1, tmp1, 8);
+
+    // dm_imag[pos1] = S2I*(el1_real+el1_imag);
+    tmp0 = _mm512_add_pd(el1_real, el1_imag);
+    tmp1 = _mm512_mul_pd(s2i_v, tmp0);
+    _mm512_i32scatter_pd(dm_imag, pos1, tmp1, 8);
+
+    OP_TAIL;
+}
+
+//============== TDG Gate ================
+//C3 gate: conjugate of sqrt(S) phase gate
+/** TDG = [1 0]
+          [0 s2i-s2i*i]
+*/
+void TDG_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, const IdxType qubit)
+{
+    const __m512d s2i_v = _mm512_set1_pd(S2I);
+    OP_HEAD;
+
+    const __m512d el1_real = _mm512_i32gather_pd(pos1, dm_real, 8);
+    const __m512d el1_imag = _mm512_i32gather_pd(pos1, dm_imag, 8);
+
+    __m512d tmp0, tmp1;
+
+    // dm_real[pos1] = S2I*( el1_real+el1_imag);
+    tmp0 = _mm512_add_pd(el1_real, el1_imag);
+    tmp1 = _mm512_mul_pd(s2i_v, tmp0);
+    _mm512_i32scatter_pd(dm_real, pos1, tmp1, 8);
+
+    // dm_imag[pos1] = S2I*(-el1_real+el1_imag);
+    tmp0 = _mm512_add_pd(-el1_real, el1_imag);
+    tmp1 = _mm512_mul_pd(s2i_v, tmp0);
+    _mm512_i32scatter_pd(dm_imag, pos1, tmp1, 8);
+
+    OP_TAIL;
+}
+
+//============== D Gate ================
+/** D = [e0_real+i*e0_imag 0]
+        [0 e3_real+i*e3_imag]
+*/
+void D_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, 
+        const ValType e0_real, const ValType e0_imag,
+        const ValType e3_real, const ValType e3_imag,
+        const IdxType qubit)
+{
+    const __m512d e0_real_v = _mm512_set1_pd(e0_real);
+    const __m512d e0_imag_v = _mm512_set1_pd(e0_imag);
+    const __m512d e3_real_v = _mm512_set1_pd(e3_real);
+    const __m512d e3_imag_v = _mm512_set1_pd(e3_imag);
+
+    OP_HEAD;
+    const __m512d el0_real = _mm512_i32gather_pd(pos0, dm_real, 8);
+    const __m512d el0_imag = _mm512_i32gather_pd(pos0, dm_imag, 8);
+    const __m512d el1_real = _mm512_i32gather_pd(pos1, dm_real, 8);
+    const __m512d el1_imag = _mm512_i32gather_pd(pos1, dm_imag, 8);
+    __m512d tmp0, tmp1, tmp2;
+
+    // dm_real[pos0] = (e0_real * el0_real) - (e0_imag * el0_imag);
+    tmp0 = _mm512_mul_pd(e0_real_v, el0_real);
+    tmp1 = _mm512_mul_pd(e0_imag_v, el0_imag);
+    tmp2 = _mm512_sub_pd(tmp0, tmp1);
+    _mm512_i32scatter_pd(dm_real, pos0, tmp2, 8);
+
+    // dm_imag[pos0] = (e0_real * el0_imag) + (e0_imag * el0_real);
+    tmp0 = _mm512_mul_pd(e0_real_v, el0_imag);
+    tmp1 = _mm512_mul_pd(e0_imag_v, el0_real);
+    tmp2 = _mm512_add_pd(tmp0, tmp1);
+    _mm512_i32scatter_pd(dm_imag, pos0, tmp2, 8);
+
+    // dm_real[pos1] = (e3_real * el1_real) - (e3_imag * el1_imag);
+    tmp0 = _mm512_mul_pd(e3_real_v, el1_real);
+    tmp1 = _mm512_mul_pd(e3_imag_v, el1_imag);
+    tmp2 = _mm512_sub_pd(tmp0, tmp1);
+    _mm512_i32scatter_pd(dm_real, pos1, tmp2, 8);
+
+    // dm_imag[pos1] = (e3_real * el1_imag) + (e3_imag * el1_real);
+    tmp0 = _mm512_mul_pd(e3_real_v, el1_imag);
+    tmp1 = _mm512_mul_pd(e3_imag_v, el1_real);
+    tmp2 = _mm512_sub_pd(tmp0, tmp1);
+    _mm512_i32scatter_pd(dm_imag, pos1, tmp2, 8);
+
+    OP_TAIL;
+}
+
+//============== RX Gate ================
+//Rotation around X-axis
+void RX_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+       const ValType theta, const IdxType qubit)
+{
+    const __m512d rx_real = _mm512_set1_pd(cos(theta/2.0));
+    const __m512d rx_imag = _mm512_set1_pd(-sin(theta/2.0));
+    
+    OP_HEAD;
+    const __m512d el0_real = _mm512_i32gather_pd(pos0, dm_real, 8);
+    const __m512d el0_imag = _mm512_i32gather_pd(pos0, dm_imag, 8);
+    const __m512d el1_real = _mm512_i32gather_pd(pos1, dm_real, 8);
+    const __m512d el1_imag = _mm512_i32gather_pd(pos1, dm_imag, 8);
+    __m512d tmp0, tmp1, tmp2;
+
+    // dm_real[pos0] = (rx_real * el0_real) - (rx_imag * el1_imag);
+    tmp0 = _mm512_mul_pd(rx_real, el0_real);
+    tmp1 = _mm512_mul_pd(rx_imag, el1_imag);
+    tmp2 = _mm512_sub_pd(tmp0, tmp1);
+    _mm512_i32scatter_pd(dm_real, pos0, tmp2, 8);
+
+    // dm_imag[pos0] = (rx_real * el0_imag) + (rx_imag * el1_real);
+    tmp0 = _mm512_mul_pd(rx_real, el0_imag);
+    tmp1 = _mm512_mul_pd(rx_imag, el1_real);
+    tmp2 = _mm512_add_pd(tmp0, tmp1);
+    _mm512_i32scatter_pd(dm_imag, pos0, tmp2, 8);
+
+    // dm_real[pos1] =  - (rx_imag * el0_imag) +(rx_real * el1_real);
+    tmp0 = _mm512_mul_pd(-rx_imag, el0_imag);
+    tmp1 = _mm512_mul_pd(rx_real, el1_real);
+    tmp2 = _mm512_add_pd(tmp0, tmp1);
+    _mm512_i32scatter_pd(dm_real, pos1, tmp2, 8);
+
+    // dm_imag[pos1] =  + (rx_imag * el0_real) +(rx_real * el1_imag);
+    tmp0 = _mm512_mul_pd(rx_imag, el0_real);
+    tmp1 = _mm512_mul_pd(rx_real, el1_imag);
+    tmp2 = _mm512_add_pd(tmp0, tmp1);
+    _mm512_i32scatter_pd(dm_imag, pos1, tmp2, 8);
+
+    OP_TAIL;
+}
+
+//============== RY Gate ================
+//Rotation around Y-axis
+void RY_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+        const ValType theta, const IdxType qubit)
+{
+    const __m512d e0_real = _mm512_set1_pd(cos(theta/2.0));
+    const __m512d e1_real = _mm512_set1_pd(-sin(theta/2.0));
+    const __m512d e2_real = _mm512_set1_pd(sin(theta/2.0));
+    const __m512d e3_real = _mm512_set1_pd(cos(theta/2.0));
+    
+    OP_HEAD;
+    const __m512d el0_real = _mm512_i32gather_pd(pos0, dm_real, 8);
+    const __m512d el0_imag = _mm512_i32gather_pd(pos0, dm_imag, 8);
+    const __m512d el1_real = _mm512_i32gather_pd(pos1, dm_real, 8);
+    const __m512d el1_imag = _mm512_i32gather_pd(pos1, dm_imag, 8);
+    __m512d tmp0, tmp1, tmp2;
+
+    // dm_real[pos0] = (e0_real * el0_real) +(e1_real * el1_real);
+    tmp0 = _mm512_mul_pd(e0_real, el0_real);
+    tmp1 = _mm512_mul_pd(e1_real, el1_real);
+    tmp2 = _mm512_add_pd(tmp0, tmp1);
+    _mm512_i32scatter_pd(dm_real, pos0, tmp2, 8);
+
+    // dm_imag[pos0] = (e0_real * el0_imag) +(e1_real * el1_imag);
+    tmp0 = _mm512_mul_pd(e0_real, el0_imag);
+    tmp1 = _mm512_mul_pd(e1_real, el1_imag);
+    tmp2 = _mm512_add_pd(tmp0, tmp1);
+    _mm512_i32scatter_pd(dm_imag, pos0, tmp2, 8);
+
+    // dm_real[pos1] = (e2_real * el0_real) +(e3_real * el1_real);
+    tmp0 = _mm512_mul_pd(e2_real, el0_real);
+    tmp1 = _mm512_mul_pd(e3_real, el1_real);
+    tmp2 = _mm512_add_pd(tmp0, tmp1);
+    _mm512_i32scatter_pd(dm_real, pos1, tmp2, 8);
+
+    // dm_imag[pos1] = (e2_real * el0_imag) +(e3_real * el1_imag);
+    tmp0 = _mm512_mul_pd(e2_real, el0_imag);
+    tmp1 = _mm512_mul_pd(e3_real, el1_imag);
+    tmp2 = _mm512_add_pd(tmp0, tmp1);
+    _mm512_i32scatter_pd(dm_imag, pos1, tmp2, 8);
+
+    OP_TAIL;
+}
+
+//============== W Gate ================
+//W gate: e^(-i*pi/4*X)
+/** W = [s2i    -s2i*i]
+        [-s2i*i s2i   ]
+*/
+void W_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, const IdxType qubit)
+{
+    const __m512d s2i = _mm512_set1_pd(S2I);
+    
+    OP_HEAD;
+    const __m512d el0_real = _mm512_i32gather_pd(pos0, dm_real, 8);
+    const __m512d el0_imag = _mm512_i32gather_pd(pos0, dm_imag, 8);
+    const __m512d el1_real = _mm512_i32gather_pd(pos1, dm_real, 8);
+    const __m512d el1_imag = _mm512_i32gather_pd(pos1, dm_imag, 8);
+    __m512d tmp0, tmp1;
+
+    // dm_real[pos0] = S2I * (el0_real + el1_imag);
+    tmp0 = _mm512_add_pd(el0_real, el1_imag);
+    tmp1 = _mm512_mul_pd(s2i, tmp0);
+    _mm512_i32scatter_pd(dm_real, pos0, tmp1, 8);
+
+    // dm_imag[pos0] = S2I * (el0_imag - el1_real);
+    tmp0 = _mm512_sub_pd(el0_imag, el1_real);
+    tmp1 = _mm512_mul_pd(s2i, tmp0);
+    _mm512_i32scatter_pd(dm_imag, pos0, tmp1, 8);
+
+    // dm_real[pos1] = S2I * (el0_imag + el1_real);
+    tmp0 = _mm512_add_pd(el0_imag, el1_real);
+    tmp1 = _mm512_mul_pd(s2i, tmp0);
+    _mm512_i32scatter_pd(dm_real, pos1, tmp1, 8);
+
+    // dm_imag[pos1] = S2I * (-el0_real + el1_imag);
+    tmp0 = _mm512_add_pd(-el0_real, el1_imag);
+    tmp1 = _mm512_mul_pd(s2i, tmp0);
+    _mm512_i32scatter_pd(dm_imag, pos1, tmp1, 8);
+
+    OP_TAIL;
+}
+
+
+
+#endif //end of AVX512
+
+
+//============== ID Gate ================
+/** ID = [1 0]
+         [0 1]
+*/
+void ID_GATE(const Simulation* sim, ValType* dm_real,
+        ValType* dm_imag, const IdxType qubit)
+{
+    return;
+}
+
+
 //============== U1 Gate ================
 //1-parameter 0-pulse single qubit gate
 void U1_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
@@ -1375,47 +1908,6 @@ void U3_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
     ValType e3_imag = cos(theta/2.0) * sin((phi+lambda)/2.0);
     C1_GATE(sim, dm_real, dm_imag, e0_real, e0_imag, e1_real, e1_imag,
             e2_real, e2_imag, e3_real, e3_imag, qubit);
-}
-
-//============== RX Gate ================
-//Rotation around X-axis
-void RX_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
-       const ValType theta, const IdxType qubit)
-{
-    ValType rx_real = cos(theta/2.0);
-    ValType rx_imag = -sin(theta/2.0);
-    OP_HEAD;
-    const ValType el0_real = dm_real[pos0]; 
-    const ValType el0_imag = dm_imag[pos0];
-    const ValType el1_real = dm_real[pos1]; 
-    const ValType el1_imag = dm_imag[pos1];
-    dm_real[pos0] = (rx_real * el0_real) - (rx_imag * el1_imag);
-    dm_imag[pos0] = (rx_real * el0_imag) + (rx_imag * el1_real);
-    dm_real[pos1] =  - (rx_imag * el0_imag) +(rx_real * el1_real);
-    dm_imag[pos1] =  + (rx_imag * el0_real) +(rx_real * el1_imag);
-    OP_TAIL;
-}
-
-//============== RY Gate ================
-//Rotation around Y-axis
-void RY_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
-        const ValType theta, const IdxType qubit)
-{
-    ValType e0_real = cos(theta/2.0);
-    ValType e1_real = -sin(theta/2.0);
-    ValType e2_real = sin(theta/2.0);
-    ValType e3_real = cos(theta/2.0);
-
-    OP_HEAD;
-    const ValType el0_real = dm_real[pos0]; 
-    const ValType el0_imag = dm_imag[pos0];
-    const ValType el1_real = dm_real[pos1]; 
-    const ValType el1_imag = dm_imag[pos1];
-    dm_real[pos0] = (e0_real * el0_real) +(e1_real * el1_real);
-    dm_imag[pos0] = (e0_real * el0_imag) +(e1_real * el1_imag);
-    dm_real[pos1] = (e2_real * el0_real) +(e3_real * el1_real);
-    dm_imag[pos1] = (e2_real * el0_imag) +(e3_real * el1_imag);
-    OP_TAIL;
 }
 
 //============== RZ Gate ================
@@ -1716,25 +2208,6 @@ void C4X_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
     C3SQRTX_GATE(sim, dm_real, dm_imag, a,b,c,e);
 }
 
-//============== W Gate ================
-//W gate: e^(-i*pi/4*X)
-/** W = [s2i    -s2i*i]
-        [-s2i*i s2i   ]
-*/
-void W_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, const IdxType qubit)
-{
-    OP_HEAD;
-    const ValType el0_real = dm_real[pos0]; 
-    const ValType el0_imag = dm_imag[pos0];
-    const ValType el1_real = dm_real[pos1]; 
-    const ValType el1_imag = dm_imag[pos1];
-    dm_real[pos0] = S2I * (el0_real + el1_imag);
-    dm_imag[pos0] = S2I * (el0_imag - el1_real);
-    dm_real[pos1] = S2I * (el0_imag + el1_real);
-    dm_imag[pos1] = S2I * (-el0_real + el1_imag);
-    OP_TAIL;
-}
-
 //============== RYY Gate ================
 //2-qubit YY rotation
 void RYY_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
@@ -1749,6 +2222,78 @@ void RYY_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
     RX_GATE(sim, dm_real, dm_imag, -PI/2, b);
 }
  
+
+
+
+
+//============== Unified 2-qubit Gate ================
+void C2_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, 
+        const ValType e00_real, const ValType e00_imag,
+        const ValType e01_real, const ValType e01_imag,
+        const ValType e02_real, const ValType e02_imag,
+        const ValType e03_real, const ValType e03_imag,
+        const ValType e10_real, const ValType e10_imag,
+        const ValType e11_real, const ValType e11_imag,
+        const ValType e12_real, const ValType e12_imag,
+        const ValType e13_real, const ValType e13_imag,
+        const ValType e20_real, const ValType e20_imag,
+        const ValType e21_real, const ValType e21_imag,
+        const ValType e22_real, const ValType e22_imag,
+        const ValType e23_real, const ValType e23_imag,
+        const ValType e30_real, const ValType e30_imag,
+        const ValType e31_real, const ValType e31_imag,
+        const ValType e32_real, const ValType e32_imag,
+        const ValType e33_real, const ValType e33_imag,
+        const IdxType qubit1, const IdxType qubit2)
+{
+    const int tid = 0;
+    const IdxType outer_bound1 = (1 << ( (sim->n_qubits) - qubit1 - 1)); 
+    const IdxType inner_bound1 = (1 << qubit1); 
+    const IdxType outer_bound2 = (1 << ( (sim->n_qubits) - qubit2 - 1)); 
+    const IdxType inner_bound2 = (1 << qubit2); 
+    for (IdxType i = tid; i < outer_bound1* inner_bound2 * (sim->m_cpu); i++)
+    { 
+        IdxType col = i / (inner_bound1 * outer_bound1); 
+        IdxType outer1 = (i % (inner_bound1 * outer_bound1)) / inner_bound1; 
+        IdxType inner1 =  i % inner_bound1; 
+        IdxType offset1 = (2 * outer1) * inner_bound1; 
+        IdxType pos0 = col * (sim->dim) + offset1 + inner1; 
+        IdxType pos1 = pos0 + inner_bound1; 
+        const ValType el0_real = dm_real[pos0]; 
+        const ValType el0_imag = dm_imag[pos0];
+        const ValType el1_real = dm_real[pos1]; 
+        const ValType el1_imag = dm_imag[pos1];
+
+        for (IdxType i = tid; i < outer_bound2* inner_bound2; i+=1)
+        { 
+            IdxType outer2 = i / inner_bound2; 
+            IdxType inner2 = i % inner_bound2;
+            IdxType offset2 = (2 * outer2) * inner_bound2; 
+            IdxType pos2 = col * (sim->dim) + offset2 + inner2; 
+            IdxType pos3 = pos2 + inner_bound2; 
+            const ValType el2_real = dm_real[pos2]; 
+            const ValType el2_imag = dm_imag[pos2];
+            const ValType el3_real = dm_real[pos3]; 
+            const ValType el3_imag = dm_imag[pos3];
+            dm_real[pos0] = (e00_real * el0_real) - (e00_imag * el0_imag)
+                           +(e01_real * el1_real) - (e01_imag * el1_imag)
+                           +(e02_real * el2_real) - (e02_imag * el2_imag)
+                           +(e03_real * el3_real) - (e03_imag * el3_imag);
+            dm_real[pos1] = (e10_real * el0_real) - (e10_imag * el0_imag)
+                           +(e11_real * el1_real) - (e11_imag * el1_imag)
+                           +(e12_real * el2_real) - (e12_imag * el2_imag)
+                           +(e13_real * el3_real) - (e13_imag * el3_imag);
+            dm_real[pos1] = (e20_real * el0_real) - (e20_imag * el0_imag)
+                           +(e21_real * el1_real) - (e21_imag * el1_imag)
+                           +(e22_real * el2_real) - (e22_imag * el2_imag)
+                           +(e23_real * el3_real) - (e23_imag * el3_imag);
+            dm_real[pos1] = (e30_real * el0_real) - (e30_imag * el0_imag)
+                           +(e31_real * el1_real) - (e31_imag * el1_imag)
+                           +(e32_real * el2_real) - (e32_imag * el2_imag)
+                           +(e33_real * el3_real) - (e33_imag * el3_imag);
+        }
+    }
+}
 
 
 

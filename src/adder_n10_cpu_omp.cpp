@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------
 // DM-Sim: Density-Matrix Quantum Circuit Simulation Environement 
-// Version 2.2
+// Version 2.3
 // Ang Li, Scientist, Pacific Northwest National Laboratory(PNNL), U.S.
 // Homepage: http://www.angliphd.com
 // GitHub repo: http://www.github.com/pnnl/DM-Sim
@@ -36,7 +36,7 @@ int main()
 //=================================== Initialization =====================================
     srand(RAND_SEED);
     int n_qubits = 10;
-    int n_cpus = 32;
+    int n_cpus = 512;
 
     //Obtain a simulator object
     Simulation sim(n_qubits, n_cpus);
@@ -47,7 +47,7 @@ int main()
     sim.append(Simulation::X(6));
     sim.append(Simulation::X(7));
     sim.append(Simulation::X(8));
-    
+
     //Call user-defined module functions 
     majority(sim, 0, 5, 1);
     majority(sim, 1, 6, 2);
