@@ -360,7 +360,7 @@ nqubits = global_array[maxvalidx] + field_length[maxvalidx]
 dmfile.write('int main()\n{\n')
 dmfile.write('\tsrand(RAND_SEED);\n')
 dmfile.write('\tint n_qubits=' + str(nqubits) + ';\n')
-dmfile.write('\tint n_cpus=32;\n')
+dmfile.write('\tint n_cpus=256;\n')
 dmfile.write('\tSimulation sim(n_qubits, n_cpus);\n')
 dmfile.write('\tprepare_circuit(sim);\n')
 dmfile.write('\tsim.upload();\n')
