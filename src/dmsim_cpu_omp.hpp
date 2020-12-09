@@ -1759,7 +1759,7 @@ void D_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
     // dm_imag[pos1] = (e3_real * el1_imag) + (e3_imag * el1_real);
     tmp0 = _mm512_mul_pd(e3_real_v, el1_imag);
     tmp1 = _mm512_mul_pd(e3_imag_v, el1_real);
-    tmp2 = _mm512_sub_pd(tmp0, tmp1);
+    tmp2 = _mm512_add_pd(tmp0, tmp1);
     _mm512_i32scatter_pd(dm_imag, pos1, tmp2, 8);
 
     OP_TAIL;
@@ -1792,13 +1792,13 @@ void RX_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
     tmp2 = _mm512_add_pd(tmp0, tmp1);
     _mm512_i32scatter_pd(dm_imag, pos0, tmp2, 8);
 
-    // dm_real[pos1] =  - (rx_imag * el0_imag) +(rx_real * el1_real);
+    // dm_real[pos1] =  - (rx_imag * el0_imag) + (rx_real * el1_real);
     tmp0 = _mm512_mul_pd(-rx_imag, el0_imag);
     tmp1 = _mm512_mul_pd(rx_real, el1_real);
     tmp2 = _mm512_add_pd(tmp0, tmp1);
     _mm512_i32scatter_pd(dm_real, pos1, tmp2, 8);
 
-    // dm_imag[pos1] =  + (rx_imag * el0_real) +(rx_real * el1_imag);
+    // dm_imag[pos1] =  + (rx_imag * el0_real) + (rx_real * el1_imag);
     tmp0 = _mm512_mul_pd(rx_imag, el0_real);
     tmp1 = _mm512_mul_pd(rx_real, el1_imag);
     tmp2 = _mm512_add_pd(tmp0, tmp1);
@@ -1824,25 +1824,25 @@ void RY_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
     const __m512d el1_imag = _mm512_i32gather_pd(pos1, dm_imag, 8);
     __m512d tmp0, tmp1, tmp2;
 
-    // dm_real[pos0] = (e0_real * el0_real) +(e1_real * el1_real);
+    // dm_real[pos0] = (e0_real * el0_real) + (e1_real * el1_real);
     tmp0 = _mm512_mul_pd(e0_real, el0_real);
     tmp1 = _mm512_mul_pd(e1_real, el1_real);
     tmp2 = _mm512_add_pd(tmp0, tmp1);
     _mm512_i32scatter_pd(dm_real, pos0, tmp2, 8);
 
-    // dm_imag[pos0] = (e0_real * el0_imag) +(e1_real * el1_imag);
+    // dm_imag[pos0] = (e0_real * el0_imag) + (e1_real * el1_imag);
     tmp0 = _mm512_mul_pd(e0_real, el0_imag);
     tmp1 = _mm512_mul_pd(e1_real, el1_imag);
     tmp2 = _mm512_add_pd(tmp0, tmp1);
     _mm512_i32scatter_pd(dm_imag, pos0, tmp2, 8);
 
-    // dm_real[pos1] = (e2_real * el0_real) +(e3_real * el1_real);
+    // dm_real[pos1] = (e2_real * el0_real) + (e3_real * el1_real);
     tmp0 = _mm512_mul_pd(e2_real, el0_real);
     tmp1 = _mm512_mul_pd(e3_real, el1_real);
     tmp2 = _mm512_add_pd(tmp0, tmp1);
     _mm512_i32scatter_pd(dm_real, pos1, tmp2, 8);
 
-    // dm_imag[pos1] = (e2_real * el0_imag) +(e3_real * el1_imag);
+    // dm_imag[pos1] = (e2_real * el0_imag) + (e3_real * el1_imag);
     tmp0 = _mm512_mul_pd(e2_real, el0_imag);
     tmp1 = _mm512_mul_pd(e3_real, el1_imag);
     tmp2 = _mm512_add_pd(tmp0, tmp1);
