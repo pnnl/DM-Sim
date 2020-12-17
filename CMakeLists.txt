@@ -1,6 +1,6 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.9)
 MESSAGE(STATUS "CMake version: ${CMAKE_VERSION}")
-PROJECT(DMSim VERSION 2.4 LANGUAGES CXX CUDA)
+PROJECT(DMSim VERSION 2.4 LANGUAGES CXX)
 
 # Define the build type
 #OPTION(BUILD_STATIC "Build static library" OFF)
@@ -8,7 +8,7 @@ PROJECT(DMSim VERSION 2.4 LANGUAGES CXX CUDA)
 
 # Define frontend
 OPTION(USE_CXX "Use C++ frontend" OFF)
-OPTION(USE_PYTHON "Use Python frontend" ON)
+OPTION(USE_PYTHON "Use Python frontend" OFF)
 
 # Define backend
 OPTION(USE_NVGPU "Use NVIDIA GPU backend" OFF)
@@ -16,11 +16,11 @@ OPTION(USE_CPU "Use CPU backend" ON)
 
 OPTION(USE_OPENMP "Use OpenMP for scale-up" OFF)
 OPTION(USE_MPI "Use MPI for scale-out" ON)
-OPTION(USE_AVX512 "Accelerated by AVX512 on X86-CPU platforms" OFF)
+OPTION(USE_AVX512 "Accelerated by AVX512 on X86-CPU platforms" ON)
 
 # Set compiler path
-SET(CC_PATH "/share/apps/gcc/8.1.0/bin/gcc")
-SET(CXX_PATH "/share/apps/gcc/8.1.0/bin/g++")
+SET(CC_PATH "")
+SET(CXX_PATH "")
 
 # Define GPU Arch
 SET(CUDA_ARCH_BIN 70)
