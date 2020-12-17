@@ -1,26 +1,22 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.9)
-MESSAGE(STATUS "CMake version: ${CMAKE_VERSION}")
-PROJECT(DMSim VERSION 2.4 LANGUAGES CXX)
 
-# Define the build type
-#OPTION(BUILD_STATIC "Build static library" OFF)
-#OPTION(BUILD_SHARED "Build shared library" ON)
+SET(CMAKE_C_COMPILER "/usr/bin/gcc")
+SET(CMAKE_CXX_COMPILER "/usr/bin/g++")
+
+MESSAGE(STATUS "CMake version: ${CMAKE_VERSION}")
+PROJECT(DMSim VERSION 2.4 LANGUAGES CXX CUDA)
 
 # Define frontend
-OPTION(USE_CXX "Use C++ frontend" OFF)
+OPTION(USE_CXX "Use C++ frontend" ON)
 OPTION(USE_PYTHON "Use Python frontend" OFF)
 
 # Define backend
-OPTION(USE_NVGPU "Use NVIDIA GPU backend" OFF)
-OPTION(USE_CPU "Use CPU backend" ON)
+OPTION(USE_NVGPU "Use NVIDIA GPU backend" ON)
+OPTION(USE_CPU "Use CPU backend" OFF)
 
-OPTION(USE_OPENMP "Use OpenMP for scale-up" OFF)
-OPTION(USE_MPI "Use MPI for scale-out" ON)
-OPTION(USE_AVX512 "Accelerated by AVX512 on X86-CPU platforms" ON)
-
-# Set compiler path
-SET(CC_PATH "")
-SET(CXX_PATH "")
+OPTION(USE_OPENMP "Use OpenMP for scale-up" ON)
+OPTION(USE_MPI "Use MPI for scale-out" OFF)
+OPTION(USE_AVX512 "Accelerated by AVX512 on X86-CPU platforms" OFF)
 
 # Define GPU Arch
 SET(CUDA_ARCH_BIN 70)
@@ -34,10 +30,6 @@ ELSE()
     MESSAGE("Building DM-Sim in RELEASE mode.")
     SET(CMAKE_BUILD_TYPE Release)
 ENDIF()
-
-# Default Compiler
-SET(CMAKE_C_COMPILER "${CC_PATH}") 
-SET(CMAKE_CXX_COMPILER "${CXX_PATH}")
 
 # Common flags
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c++11 -fPIC")
@@ -95,18 +87,18 @@ IF(USE_PYTHON)
     INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_DIRS})
     IF(USE_NVGPU)
         IF(USE_OPENMP)
-            SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --compiler-options=' -fopenmp -Wall -shared -std=c++11 -fPIC' -I/usr/include/python3.7 ")
+            SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --compiler-options=' -fopenmp -Wall -shared -std=c++11 -fPIC' ")
         ENDIF()
         IF(USE_MPI)
-            SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --compiler-options=' -Wall -shared -std=c++11 -fPIC' -I/usr/include/python3.7 ")
+            SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --compiler-options=' -Wall -shared -std=c++11 -fPIC' ")
         ENDIF()
     ENDIF()
     IF(USE_CPU)
         IF(USE_OPENMP)
-            SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -Wall -shared -std=c++11 -fPIC -I/usr/include/python3.7 ")
+            SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -Wall -shared -std=c++11 -fPIC ")
         ENDIF()
         IF(USE_MPI)
-            SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -shared -std=c++11 -fPIC -I/usr/include/python3.7 ")
+            SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -shared -std=c++11 -fPIC ")
         ENDIF()
     ENDIF()
 ENDIF()
@@ -116,9 +108,9 @@ ENDIF()
 IF(USE_PYTHON)
     IF(USE_NVGPU)
         IF(USE_OPENMP)
-            #ADD_EXECUTABLE("dmsim_py_nvgpu_omp.so" "src/py_nvgpu_omp_wrapper.cu")
-            ADD_LIBRARY("dmsim_py_nvgpu_omp" SHARED "src/py_nvgpu_omp_wrapper.cu")
-            TARGET_LINK_LIBRARIES("dmsim_py_nvgpu_omp" ${PYTHON_LIBRARIES})
+            ADD_EXECUTABLE("dmsim_py_nvgpu_omp.so" "src/py_nvgpu_omp_wrapper.cu")
+            #ADD_LIBRARY("dmsim_py_nvgpu_omp" SHARED "src/py_nvgpu_omp_wrapper.cu")
+            TARGET_LINK_LIBRARIES("dmsim_py_nvgpu_omp.so" ${PYTHON_LIBRARIES})
         ENDIF()
         IF(USE_MPI)
             ADD_EXECUTABLE("dmsim_py_nvgpu_mpi.so" "src/py_nvgpu_mpi_wrapper.cu")
@@ -136,7 +128,6 @@ IF(USE_PYTHON)
         ENDIF()
     ENDIF()
 ENDIF()
-
 
 INCLUDE_DIRECTORIES("src")
 ADD_SUBDIRECTORY("example")
