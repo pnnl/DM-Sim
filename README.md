@@ -6,7 +6,11 @@ A Density Matrix Quantum Simulation Environment for Single-GPU/CPU, Single-Node-
 
 ## Current version
 
-Latest version: **2.3**
+Latest version: **2.4**
+
+#### Version-2.4 Updates:
+ - Add CMake for easy build-up.
+ - Add qasmbench for evaluation.
 
 #### Version-2.3 Updates:
  - Add AVX512 acceleration support for the CPU-backend. Specify *USE_AVX512* in config.hpp. Require AVX512F support of the CPU.

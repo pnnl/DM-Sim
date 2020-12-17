@@ -30,7 +30,8 @@ NVCC_FLAGS = -O3 -arch=sm_70 -m64 -std=c++11 -rdc=true --compiler-options -fPIC
 
 # CPU Compiler
 CC = g++
-CC_FLAGS = -O3 -mavx512f -std=c++11 -fPIC
+#CC_FLAGS = -O3 -mavx512f -std=c++11 -fPIC
+CC_FLAGS = -O3 -std=c++11 -fPIC
 
 # MPI Compiler
 MPICC = mpicxx
@@ -76,7 +77,6 @@ QIR_BRIDGE_FLAGS = -I. -I$(QIR_BRIDGE_PUBLIC) -I$(QIR_BRIDGE_TEST) -L$(QIR_BRIDG
 # Linking
 LIBS = -lm
 
-OBJ = adder_n10_cpu_omp adder_n10_nvgpu_omp adder_n10_cpu_mpi adder_n10_nvgpu_mpi 
 #OBJ = dmsim_py_nvgpu_omp.so dmsim_py_cpu_omp.so 
 #OBJ = dmsim_py_nvgpu_mpi.so dmsim_py_cpu_mpi.so 
 #OBJ = vqe_qir_omp vqe_qir_mpi 

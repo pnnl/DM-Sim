@@ -334,7 +334,7 @@ def parse(infile, mainfile):
 # Main Program
 parser = argparse.ArgumentParser(description='DM_Sim Assembler for OpenQASM-V2.0: translating OpenQASM to DM_sim native simulation circuit code.')
 parser.add_argument('--input', '-i', help='input OpenQASM file, such as adder.qasm')
-parser.add_argument('--output', '-o', default='dmsim_circuit.py', help='output DM_Sim circuit python file (default: dmsim_circuit.py)') 
+parser.add_argument('--output', '-o', default='dmsim_circuit.cpp', help='output DM_Sim circuit C++/CUDA file (default: dmsim_circuit.cpp)') 
 args = parser.parse_args()
 #print (args.input)
 

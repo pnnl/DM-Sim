@@ -15,7 +15,7 @@
 #define CONFIG_H
 
 //QIR backend: {NVGPU, CPU}
-#define NVGPU
+//#define NVGPU
 //#define CPU
 
 //Track per circuit execution performance
@@ -25,7 +25,7 @@
 #define CUDA_ERROR_CHECK
 
 //Accelerate by AVX512
-#define USE_AVX512
+//#define USE_AVX512
 
 // ================================= Configurations =====================================
 namespace DMSim 
