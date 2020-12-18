@@ -7,19 +7,31 @@ MESSAGE(STATUS "CMake version: ${CMAKE_VERSION}")
 PROJECT(DMSim VERSION 2.4 LANGUAGES CXX CUDA)
 
 # Define frontend
-OPTION(USE_CXX "Use C++ frontend" ON)
+OPTION(USE_CXX "Use C++ frontend" OFF)
 OPTION(USE_PYTHON "Use Python frontend" OFF)
+OPTION(USE_QIR "Use QIR (Q#/QDK) frontend" ON)
 
 # Define backend
-OPTION(USE_NVGPU "Use NVIDIA GPU backend" ON)
-OPTION(USE_CPU "Use CPU backend" OFF)
+OPTION(USE_NVGPU "Use NVIDIA GPU backend" OFF)
+OPTION(USE_CPU "Use CPU backend" ON)
 
-OPTION(USE_OPENMP "Use OpenMP for scale-up" ON)
-OPTION(USE_MPI "Use MPI for scale-out" OFF)
-OPTION(USE_AVX512 "Accelerated by AVX512 on X86-CPU platforms" OFF)
+OPTION(USE_OPENMP "Use OpenMP for scale-up" OFF)
+OPTION(USE_MPI "Use MPI for scale-out" ON)
+OPTION(USE_AVX512 "Accelerated by AVX512 on X86-CPU platforms" ON)
 
 # Define GPU Arch
 SET(CUDA_ARCH_BIN 70)
+IF (NOT DEFINED ${CMAKE_CUDA_ARCHITECTURES})
+    SET(CMAKE_CUDA_ARCHITECTURES ${CUDA_ARCH_BIN})
+ENDIF()
+
+# Define Clang++ for Q#/QIR
+IF (USE_QIR)
+    SET(CMAKE_C_COMPILER "/home/lian599/raid/qir/llvm-project/build/bin/clang")
+    SET(CMAKE_CXX_COMPILER "/home/lian599/raid/qir/llvm-project/build/bin/clang++")
+    SET(QIR_INC_PATH "/home/angli/raid/qir/irina/public_repo/qsharp-runtime/src/QirRuntime/")
+    SET(QIR_LIB_PATH "/home/angli/raid/qir/irina/public_repo/qsharp-runtime/src/QirRuntime/build/Linux/Release/")
+ENDIF()
 
 # Debug or Release
 IF (DEFINED DEBUG)
@@ -70,7 +82,7 @@ ENDIF()
 # NVIDIA GPU Backend
 IF(USE_NVGPU)
     FIND_PACKAGE(CUDA REQUIRED)
-    SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -std=c++11 -gencode arch=compute_${CUDA_ARCH_BIN},code=sm_${CUDA_ARCH_BIN} -rdc=true --compiler-options -fPIC")
+    SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_${CUDA_ARCH_BIN},code=sm_${CUDA_ARCH_BIN} -rdc=true --compiler-options -fPIC")
     IF(USE_OPENMP)
         SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -fopenmp")
     ENDIF()
@@ -82,8 +94,7 @@ ENDIF()
 
 # Python Frontend
 IF(USE_PYTHON)
-    FIND_PACKAGE(PythonInterp 3.4 REQUIRED)
-    FIND_PACKAGE(PythonLibs 3.4 REQUIRED)
+    FIND_PACKAGE(pybind11)
     INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_DIRS})
     IF(USE_NVGPU)
         IF(USE_OPENMP)
@@ -103,34 +114,48 @@ IF(USE_PYTHON)
     ENDIF()
 ENDIF()
 
+# Q#/QDK QIR Frontend
+IF(USE_QIR)
+    INCLUDE_DIRECTORIES("${QIR_INC_PATH}/public/")
+    INCLUDE_DIRECTORIES("${QIR_INC_PATH}/test/")
+    INCLUDE_DIRECTORIES("src")
+    #ADD_SUBDIRECTORY("qir")
+ENDIF()
+
 
 
 IF(USE_PYTHON)
     IF(USE_NVGPU)
         IF(USE_OPENMP)
-            ADD_EXECUTABLE("dmsim_py_nvgpu_omp.so" "src/py_nvgpu_omp_wrapper.cu")
-            #ADD_LIBRARY("dmsim_py_nvgpu_omp" SHARED "src/py_nvgpu_omp_wrapper.cu")
-            TARGET_LINK_LIBRARIES("dmsim_py_nvgpu_omp.so" ${PYTHON_LIBRARIES})
+            ADD_LIBRARY("dmsim_py_nvgpu_omp" SHARED "src/py_nvgpu_omp_wrapper.cu")
+            TARGET_LINK_LIBRARIES("dmsim_py_nvgpu_omp" ${PYTHON_LIBRARIES})
+            TARGET_LINK_LIBRARIES("dmsim_py_nvgpu_omp" ${OpenMP_CXX_FLAGS})
+            SET_TARGET_PROPERTIES("dmsim_py_nvgpu_omp" PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+            SET_TARGET_PROPERTIES("dmsim_py_nvgpu_omp" PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+
         ENDIF()
         IF(USE_MPI)
-            ADD_EXECUTABLE("dmsim_py_nvgpu_mpi.so" "src/py_nvgpu_mpi_wrapper.cu")
-            TARGET_LINK_LIBRARIES("dmsim_py_nvgpu_mpi.so" ${MPI_LIBRARIES})
-            TARGET_LINK_LIBRARIES("dmsim_py_nvgpu_mpi.so" ${PYTHON_LIBRARIES})
+            ADD_LIBRARY("dmsim_py_nvgpu_mpi" SHARED "src/py_nvgpu_mpi_wrapper.cu")
+            TARGET_LINK_LIBRARIES("dmsim_py_nvgpu_mpi" ${MPI_LIBRARIES})
+            TARGET_LINK_LIBRARIES("dmsim_py_nvgpu_mpi" ${PYTHON_LIBRARIES})
+            SET_TARGET_PROPERTIES("dmsim_py_nvgpu_mpi" PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+            SET_TARGET_PROPERTIES("dmsim_py_nvgpu_mpi" PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
         ENDIF()
+
     ENDIF()
     IF(USE_CPU)
         IF(USE_OPENMP)
-            ADD_EXECUTABLE("dmsim_py_cpu_omp.so" "src/py_cpu_omp_wrapper.cpp")
+            ADD_LIBRARY("dmsim_py_cpu_omp" SHARED "src/py_cpu_omp_wrapper.cpp")
         ENDIF()
         IF(USE_MPI)
-            ADD_EXECUTABLE("dmsim_py_cpu_mpi.so" "src/py_cpu_mpi_wrapper.cpp")
-            TARGET_LINK_LIBRARIES("dmsim_py_cpu_mpi.so" ${MPI_LIBRARIES})
+            ADD_LIBRARY("dmsim_py_cpu_mpi" SHARED "src/py_cpu_mpi_wrapper.cpp")
+            TARGET_LINK_LIBRARIES("dmsim_py_cpu_mpi" ${MPI_LIBRARIES})
         ENDIF()
     ENDIF()
 ENDIF()
 
 INCLUDE_DIRECTORIES("src")
-ADD_SUBDIRECTORY("example")
+#ADD_SUBDIRECTORY("example")
 #ADD_SUBDIRECTORY("qasmbench")
 
 

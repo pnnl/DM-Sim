@@ -23,6 +23,7 @@
 #include <string.h>
 #include <cstdlib>
 #include <immintrin.h>
+#include <iostream>
 
 #include "config.hpp"
 
@@ -215,6 +216,16 @@ public:
         //CPU side initialization
         assert(is_power_of_2(n_cpus));
         assert(dim % n_cpus == 0);
+        if (!is_power_of_2(n_cpus))
+        {
+            std::cerr << "Error: Number of CPU threads should be an exponential of 2." << std::endl;
+            exit(1);
+        }
+        if (dim % n_cpus != 0)
+        {
+            std::cerr << "Error: Number of CPU threads is too large or too small." << std::endl;
+            exit(1);
+        }
         SAFE_ALOC_HOST(dm_real_cpu, dm_size);
         SAFE_ALOC_HOST(dm_imag_cpu, dm_size);
         SAFE_ALOC_HOST(dm_real_res, dm_size);

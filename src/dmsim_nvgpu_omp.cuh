@@ -21,6 +21,7 @@
 #include <omp.h>
 #include <sstream>
 #include <string>
+#include <iostream>
 
 #include "config.hpp"
 
@@ -215,6 +216,16 @@ public:
         //CPU side initialization
         assert(is_power_of_2(n_gpus));
         assert(dim % n_gpus == 0);
+        if (!is_power_of_2(n_gpus))
+        {
+            std::cerr << "Error: Number of GPUs should be an exponential of 2." << std::endl;
+            exit(1);
+        }
+        if (dim % n_gpus != 0)
+        {
+            std::cerr << "Error: Number of GPUs is too large or too small." << std::endl;
+            exit(1);
+        }
         SAFE_ALOC_HOST(dm_real_cpu, dm_size);
         SAFE_ALOC_HOST(dm_imag_cpu, dm_size);
         SAFE_ALOC_HOST(dm_real_res, dm_size);

@@ -23,7 +23,7 @@ namespace py = pybind11;
 using namespace DMSim;
 
 //Note pybind11 requires CUDA-10.0 or newer
-PYBIND11_MODULE(dmsim_py_nvgpu_mpi, m) 
+PYBIND11_MODULE(libdmsim_py_nvgpu_mpi, m) 
 {
     py::class_<Gate>(m, "Gate")
         .def(py::init<enum OP,IdxType,IdxType,IdxType,

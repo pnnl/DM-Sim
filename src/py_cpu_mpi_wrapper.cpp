@@ -22,7 +22,7 @@
 namespace py = pybind11;
 using namespace DMSim;
 
-PYBIND11_MODULE(dmsim_py_cpu_mpi, m) 
+PYBIND11_MODULE(libdmsim_py_cpu_mpi, m) 
 {
     py::class_<Gate>(m, "Gate")
         .def(py::init<enum OP,IdxType,IdxType,IdxType,

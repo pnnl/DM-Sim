@@ -163,7 +163,7 @@ inline void swap_pointers(ValType** pa, ValType** pb)
 //Verify whether a number is power of 2
 inline bool is_power_of_2(int x)
 {
-    return x > 0 && !(x & (x-1));
+    return (x > 0 && !(x & (x-1)));
 }
 
 

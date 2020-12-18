@@ -23,6 +23,7 @@
 #include <math.h>
 #include <string.h>
 #include <cstdlib>
+#include <iostream>
 
 #include <immintrin.h>
 
@@ -221,6 +222,17 @@ public:
 
         assert(is_power_of_2(n_cpus));
         assert(dim % n_cpus == 0);
+        
+        if (!is_power_of_2(n_cpus))
+        {
+            std::cerr << "Error: Number of CPU processes should be an exponential of 2." << std::endl;
+            exit(1);
+        }
+        if (dim % n_cpus != 0)
+        {
+            std::cerr << "Error: Number of CPU processes is too large or too small." << std::endl;
+            exit(1);
+        }
 
         SAFE_ALOC_HOST(dm_real_cpu, dm_size_per_cpu);
         SAFE_ALOC_HOST(dm_imag_cpu, dm_size_per_cpu);
