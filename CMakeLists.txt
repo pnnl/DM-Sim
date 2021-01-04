@@ -21,9 +21,9 @@ MESSAGE(STATUS "CMake version: ${CMAKE_VERSION}")
 PROJECT(DMSim VERSION 2.4 LANGUAGES CXX CUDA)
 
 # Define frontend
-OPTION(USE_CXX "Use C++ frontend" OFF)
+OPTION(USE_CXX "Use C++ frontend" ON)
 OPTION(USE_PYTHON "Use Python frontend" OFF)
-OPTION(USE_QIR "Use QIR (Q#/QDK) frontend" ON)
+OPTION(USE_QIR "Use QIR (Q#/QDK) frontend" OFF)
 
 # Define backend
 OPTION(USE_CPU "Use CPU backend" ON)
@@ -31,11 +31,11 @@ OPTION(USE_NVGPU "Use NVIDIA GPU backend" OFF)
 OPTION(USE_AMD "Use AMD GPU backend" OFF)
 
 # Define OMP/MPI
-OPTION(USE_OPENMP "Use OpenMP for scale-up" OFF)
-OPTION(USE_MPI "Use MPI for scale-out" ON)
+OPTION(USE_OPENMP "Use OpenMP for scale-up" ON)
+OPTION(USE_MPI "Use MPI for scale-out" OFF)
 
 # AVX512 for CPU backend
-OPTION(USE_AVX512 "Accelerated by AVX512 on X86-CPU platforms" ON)
+OPTION(USE_AVX512 "Accelerated by AVX512 on X86-CPU platforms" OFF)
 
 # Define NVIDIA GPU Arch
 SET(CUDA_ARCH_BIN 70)
