@@ -8,14 +8,15 @@
 // PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
 // BSD Lincese.
 // ---------------------------------------------------------------------------
-// File: adder_n10_nvgpu_omp.cu
-// A 10-qubit adder example based on OpenMP using NVIDIA GPU backend.
-// For single-node (1 or more GPUs); no inter-GPU communication required.
+// File: adder_n10_nvgpu_mpi.cu
+// A 10-qubit adder example based on MPI using NVIDIA GPU backend.
+// !!!! This design requires GPUDirect-RDMA support !!!!
 // ---------------------------------------------------------------------------
 
 #include <stdio.h>
-#include "util.cuh"
-#include "dmsim_nvgpu_omp.cuh"
+#include <mpi.h>
+#include "util_amdgpu.hpp"
+#include "dmsim_amdgpu_mpi.hpp"
 
 //Use the DMSim namespace to enable C++/CUDA APIs
 using namespace DMSim;
@@ -33,16 +34,24 @@ void unmaj(Simulation &sim, const IdxType a, const IdxType b, const IdxType c)
     sim.append(Simulation::CX(c, a));
     sim.append(Simulation::CX(a, b));
 }
-
-int main()
+//argc and argv are required for MPI.
+int main(int argc, char *argv[])
 {
 //=================================== Initialization =====================================
-    srand(RAND_SEED);
+    //Initialize
+    int n_gpus = 0;
+    int i_gpu = 0;
+    MPI_Init(&argc, &argv);
+
+
+    MPI_Comm_rank(MPI_COMM_WORLD, &i_gpu);
+    MPI_Comm_size(MPI_COMM_WORLD, &n_gpus);
+    //printf("Rank-%d of %d processes.\n", i_gpu, n_gpus);
     int n_qubits = 10;
-    int n_gpus = 4;
+    srand(RAND_SEED);
 
     //Obtain a simulator object
-    Simulation sim(n_qubits, n_gpus);
+    Simulation sim(n_qubits);
 
     //Add the gates to the circuit
     sim.append(Simulation::X(1));
@@ -50,7 +59,7 @@ int main()
     sim.append(Simulation::X(6));
     sim.append(Simulation::X(7));
     sim.append(Simulation::X(8));
-    
+
     //Call user-defined module functions 
     majority(sim, 0, 5, 1);
     majority(sim, 1, 6, 2);
@@ -67,12 +76,13 @@ int main()
 
     //Run the simulation
     sim.sim();
-    
-    //Measure
-    auto* res = sim.measure(5);
-    print_measurement(res, 10, 5);
-    delete res; 
 
+    //Measure
+    auto res = sim.measure(5);
+    if (i_gpu == 0) print_measurement(res, n_qubits, 5);
+
+    //Finalize 
+    MPI_Finalize();
     return 0;
 }
 

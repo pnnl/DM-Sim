@@ -8,16 +8,16 @@
 // PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
 // BSD Lincese.
 // ---------------------------------------------------------------------------
-// File: adder_n10_nvgpu_omp.cu
-// A 10-qubit adder example based on OpenMP using NVIDIA GPU backend.
+// File: adder_n10_amdgpu_omp.cpp
+// A 10-qubit adder example based on OpenMP using AMD GPU backend.
 // For single-node (1 or more GPUs); no inter-GPU communication required.
 // ---------------------------------------------------------------------------
 
 #include <stdio.h>
-#include "util.cuh"
-#include "dmsim_nvgpu_omp.cuh"
+#include "util_amdgpu.hpp"
+#include "dmsim_amdgpu_omp.hpp"
 
-//Use the DMSim namespace to enable C++/CUDA APIs
+//Use the DMSim namespace to enable C++/CUDA/HIP APIs
 using namespace DMSim;
 
 //You can define circuit module functions as below.

@@ -24,26 +24,36 @@
 #  Use -mavx512f
 # ---------------------------------------------------------------------------
 
-# GPU Compiler
-NVCC = nvcc
-NVCC_FLAGS = -O3 -arch=sm_70 -m64 -std=c++11 -rdc=true --compiler-options -fPIC
-
 # CPU Compiler
 CC = g++
 #CC_FLAGS = -O3 -mavx512f -std=c++11 -fPIC
 CC_FLAGS = -O3 -std=c++11 -fPIC
 
+# GPU Compiler
+NVCC = nvcc
+NVCC_FLAGS = -O3 -arch=sm_70 -m64 -std=c++11 -rdc=true --compiler-options -fPIC
+
+# AMD GPU Compiler
+HIPCC = hipcc
+HIPCC_FLAGS =  -O3 -std=c++11 -fPIC
+
+
 # MPI Compiler
 MPICC = mpicxx
 MPICC_FLAGS = -O3 -mavx512f -std=c++11 -fPIC
 #MPI_INC = /share/apps/openmpi/3.1.3/gcc/7.3.0/include/ 
-MPI_INC = /usr/include/mpi/
+#MPI_INC = /usr/include/mpi/
+MPI_INC = /usr/mpi/gcc/openmpi-4.0.3rc4/include/
 
 # Python
 PY_NVGPU_OMP_FLAGS = --compiler-options=" -fopenmp -Wall -shared -std=c++11 -fPIC" -I/usr/include/python2.7 -lpython2.7 `python -m pybind11 --includes`
 PY_NVGPU_MPI_FLAGS = --compiler-options=" -Wall -shared -std=c++11 -fPIC" -I/usr/include/python2.7 -lpython2.7 `python -m pybind11 --includes` -I$(MPI_INC)
 PY_CPU_OMP_FLAGS = -fopenmp -Wall -shared -std=c++11 -fPIC -I/usr/include/python2.7 -lpython2.7 `python -m pybind11 --includes`
 PY_CPU_MPI_FLAGS = -Wall -shared -std=c++11 -fPIC -I/usr/include/python2.7 -lpython2.7 `python -m pybind11 --includes` -I$(MPI_INC)
+
+PY_AMDGPU_OMP_FLAGS = -fopenmp -Wall -shared -std=c++11 -fPIC `python -m pybind11 --includes`
+PY_AMDGPU_MPI_FLAGS = -Wall -shared -std=c++11 -fPIC `python -m pybind11 --includes` -I$(MPI_INC)
+
 
 # QIR requires Clang, QIR and QIR-Bridge
 #QIRCC = /autofs/nccs-svm1_sw/summit/llvm/10.0.1-rc1/10.0.1-rc1-0/bin/clang++
@@ -81,6 +91,10 @@ LIBS = -lm
 #OBJ = dmsim_py_nvgpu_mpi.so dmsim_py_cpu_mpi.so 
 #OBJ = vqe_qir_omp vqe_qir_mpi 
 
+#OBJ = adder_n10_amdgpu_omp adder_n10_amdgpu_mpi
+#OBJ = libdmsim_py_amdgpu_omp.so
+OBJ = libdmsim_py_amdgpu_mpi.so
+
 all: $(OBJ) 
 
 #================================== CPU =======================================
@@ -108,6 +122,20 @@ dmsim_py_nvgpu_omp.so: py_nvgpu_omp_wrapper.cu dmsim_nvgpu_omp.cuh config.hpp ut
 
 dmsim_py_nvgpu_mpi.so: py_nvgpu_mpi_wrapper.cu dmsim_nvgpu_mpi.cuh config.hpp util.cuh
 	$(NVCC) $(NVCC_FLAGS) $(LIBS) $(PY_NVGPU_MPI_FLAGS) py_nvgpu_mpi_wrapper.cu -o $@
+
+
+#============================== AMD GPU ====================================
+adder_n10_amdgpu_omp: adder_n10_amdgpu_omp.cpp dmsim_amdgpu_omp.hpp config.hpp util_amdgpu.hpp
+	$(HIPCC) $(HIPCC_FLAGS) $(LIBS) -fopenmp adder_n10_amdgpu_omp.cpp -o $@
+
+adder_n10_amdgpu_mpi: adder_n10_amdgpu_mpi.cpp dmsim_amdgpu_mpi.hpp config.hpp util_amdgpu.hpp
+	$(HIPCC) $(HIPCC_FLAGS) $(LIBS) -lmpi -I/usr/mpi/gcc/openmpi-4.0.3rc4/include/ -L/usr/mpi/gcc/openmpi-4.0.3rc4/lib64/ adder_n10_amdgpu_mpi.cpp -o $@
+
+libdmsim_py_amdgpu_omp.so: py_amdgpu_omp_wrapper.cpp dmsim_amdgpu_omp.hpp config.hpp util_amdgpu.hpp
+	$(HIPCC) $(HIPCC_FLAGS) $(LIBS) $(PY_AMDGPU_OMP_FLAGS) py_amdgpu_omp_wrapper.cpp -o $@
+
+libdmsim_py_amdgpu_mpi.so: py_amdgpu_mpi_wrapper.cpp dmsim_amdgpu_mpi.hpp config.hpp util_amdgpu.hpp
+	$(HIPCC) $(HIPCC_FLAGS) $(LIBS) $(PY_AMDGPU_MPI_FLAGS) py_amdgpu_mpi_wrapper.cpp -o $@
 
 
 #============================== Microsoft QIR ====================================

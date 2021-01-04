@@ -19,10 +19,13 @@ import mpi4py
 from mpi4py import MPI
 
 # Using DM-Sim NVGPU backend
-#import dmsim_py_nvgpu_mpi as dmsim_mpi
+#import libdmsim_py_nvgpu_mpi as dmsim_mpi
 
 # Using DM-Sim CPU backend
-import dmsim_py_cpu_mpi as dmsim_mpi
+import libdmsim_py_cpu_mpi as dmsim_mpi
+
+# Using DM-Sim AMDGPU backend
+#import libdmsim_py_amdgpu_mpi as dmsim_mpi
 
 
 comm = MPI.COMM_WORLD
