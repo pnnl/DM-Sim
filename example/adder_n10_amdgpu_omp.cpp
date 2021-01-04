@@ -14,8 +14,8 @@
 // ---------------------------------------------------------------------------
 
 #include <stdio.h>
-#include "util_amdgpu.hpp"
-#include "dmsim_amdgpu_omp.hpp"
+#include "../src/util_amdgpu.hpp"
+#include "../src/dmsim_amdgpu_omp.hpp"
 
 //Use the DMSim namespace to enable C++/CUDA/HIP APIs
 using namespace DMSim;

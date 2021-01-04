@@ -1,15 +1,15 @@
 // ---------------------------------------------------------------------------
 // DM-Sim: Density-Matrix quantum circuit simulator
-// Version 2.2
 // ---------------------------------------------------------------------------
-// File: gate_cpu_mpi.cuh
-// MPI based CPU implementation of DM-Sim (with AVX-512 support).
-// ---------------------------------------------------------------------------
-// Ang Li, Scientist, Pacific Northwest National Laboratory(PNNL), U.S.
+// Ang Li, Senior Computer Scientist
+// Pacific Northwest National Laboratory(PNNL), U.S.
 // Homepage: http://www.angliphd.com
 // GitHub repo: http://www.github.com/pnnl/DM-Sim
 // PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
 // BSD Lincese.
+// ---------------------------------------------------------------------------
+// File: dmsim_cpu_mpi.cuh
+// MPI based CPU implementation of DM-Sim (with AVX-512 support).
 // ---------------------------------------------------------------------------
 
 #ifndef DMSIM_CPU_MPI_CUH

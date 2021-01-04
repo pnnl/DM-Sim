@@ -1,31 +1,33 @@
-## ---------------------------------------------------------------------------
-## DM-Sim: Density-Matrix Quantum Circuit Simulation Environement
-## Version 2.2
-## Ang Li, Scientist, Pacific Northwest National Laboratory(PNNL), U.S.
-## Homepage: http://www.angliphd.com
-## GitHub repo: http://www.github.com/pnnl/DM-Sim
-## PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
-## BSD Lincese.
-## ---------------------------------------------------------------------------
-## File: adder_n10_mpi.py
-## A 10-qubit adder example using Python API using MPI.
-## The NVGPU backedn requires GPUDirect-RDMA support.
-## Requires: PyBind11 (https://github.com/pybind/pybind11)
-##           CUDA-10.0 or newer (required by pybind11 for Python API)
-##           MPI4PY (https://github.com/mpi4py/mpi4py) 
-## ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# DM-Sim: Density-Matrix Quantum Circuit Simulation Environement
+# ---------------------------------------------------------------------------
+# Ang Li, Senior Computer Scientist
+# Pacific Northwest National Laboratory(PNNL), U.S.
+# Homepage: http://www.angliphd.com
+# GitHub repo: http://www.github.com/pnnl/DM-Sim
+# PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
+# BSD Lincese.
+# ---------------------------------------------------------------------------
+# File: adder_n10_mpi.py
+# A 10-qubit adder example using Python API using MPI.
+# The NVGPU backend requires GPUDirect-RDMA support.
+# Requires: PyBind11 (https://github.com/pybind/pybind11)
+#           CUDA-10.0 or newer (required by pybind11 for Python API)
+#           MPI4PY (https://github.com/mpi4py/mpi4py) 
+# ---------------------------------------------------------------------------
+
 import sys
 import mpi4py
 from mpi4py import MPI
 
 # Using DM-Sim NVGPU backend
-#import libdmsim_py_nvgpu_mpi as dmsim_mpi
+#import ../src/libdmsim_py_nvgpu_mpi as dmsim_mpi
 
 # Using DM-Sim CPU backend
-import libdmsim_py_cpu_mpi as dmsim_mpi
+import ../src/libdmsim_py_cpu_mpi as dmsim_mpi
 
 # Using DM-Sim AMDGPU backend
-#import libdmsim_py_amdgpu_mpi as dmsim_mpi
+#import ../src/libdmsim_py_amdgpu_mpi as dmsim_mpi
 
 
 comm = MPI.COMM_WORLD

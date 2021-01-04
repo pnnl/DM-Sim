@@ -14,8 +14,8 @@
 // ---------------------------------------------------------------------------
 
 #include <stdio.h>
-#include "util.cuh"
-#include "dmsim_nvgpu_omp.cuh"
+#include "../src/util_nvgpu.cuh"
+#include "../src/dmsim_nvgpu_omp.cuh"
 
 //Use the DMSim namespace to enable C++/CUDA APIs
 using namespace DMSim;

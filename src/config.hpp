@@ -15,21 +15,26 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-//QIR backend: {NVGPU, CPU}
-//#define NVGPU
+//QIR backend: {CPU, NVGPU, AMDGPU}
+
 //#define CPU
+//#define NVGPU
+//#define AMDGPU
 
 //Track per circuit execution performance
 #define PRINT_MEA_PER_CIRCUIT
 
-//Error check for all CUDA Runtim-API calls and Kernel check
+//Error check for all NVIDIA CUDA Runtim-API calls and Kernel check
 #define CUDA_ERROR_CHECK
+
+//Error check for all AMD HIP Runtim-API calls and Kernel check
+#define HIP_ERROR_CHECK
 
 //Accelerate by AVX512
 //#define USE_AVX512
 
-//If GPUDirect RDMA is supported 
-//#define GPU_RDMA
+//If GPUDirect RDMA is supported (otherwise host memory buffer is used for MPI communication) 
+#define GPU_RDMA
 
 // ================================= Configurations =====================================
 namespace DMSim 

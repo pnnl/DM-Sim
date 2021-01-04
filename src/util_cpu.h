@@ -1,7 +1,8 @@
 // ---------------------------------------------------------------------------
 // DM-Sim: Density-Matrix Quantum Circuit Simulation Environement.
-// Version 2.2
-// Ang Li, Scientist, Pacific Northwest National Laboratory(PNNL), U.S.
+// ---------------------------------------------------------------------------
+// Ang Li, Senior Computer Scientist
+// Pacific Northwest National Laboratory(PNNL), U.S.
 // Homepage: http://www.angliphd.com
 // GitHub repo: http://www.github.com/pnnl/DM-Sim
 // PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160

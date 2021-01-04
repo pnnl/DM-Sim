@@ -1,6 +1,6 @@
 # DM-Sim: Density Matrix Quantum Circuit Simulation Environment
 
-A Density Matrix Quantum Simulation Environment for Single-GPU/CPU, Single-Node-Multi-GPUs/CPUs and Multi-Nodes GPU/CPU Cluster. 
+A Density Matrix Quantum Simulation Environment for Single-GPU/CPU, Single-Node-Multi-GPUs/CPUs and Multi-Nodes GPU/CPU Cluster. It supports Intel/AMD/IBM CPUs, NVIDIA/AMD GPUs. 
 
 ![alt text](img/example.png)
 
@@ -10,6 +10,7 @@ Latest version: **2.5**
 
 #### Version-2.5 Updates:
  - Add AMD HIP GPU backend.
+ - Slightly restructure the code.
 
 #### Version-2.4 Updates:
  - Add CMake for easy build-up.
@@ -19,13 +20,12 @@ Latest version: **2.5**
  - Add AVX512 acceleration support for the CPU-backend. Specify *USE_AVX512* in config.hpp. Require AVX512F support of the CPU.
 
 #### Version-2.2 Updates:
- - Add CPU backend for both OpenMP and MPI so that DM-Sim can support system without GPUs. Verified the C++/Python APIs, QDK/QIR on Summit.
+ - Add CPU backend for both OpenMP and MPI so that DM-Sim can support system without GPUs. 
  - Reform the source code file structure.
 
 #### Version-2.1 Updates:
  - Support Q# code through [QIR](https://devblogs.microsoft.com/qsharp/introducing-quantum-intermediate-representation-qir/) and Bridge developed by Microsoft quantum team. The DM-Sim project is also listed as one of the [public projects](https://github.com/microsoft/qsharp-language/blob/main/Specifications/QIR/List.md) using QIR to support Q#/QDK. 
  - Enable the dump of current quantum circuit into a file stream.
-
 
 ### Version-2.0 Updates:
  - Provide python APIs, see the adder_n10_omp.py example in src.
@@ -75,7 +75,7 @@ DM-Sim (OpenMP) simulates 1M general gates with 15-qubits gate-by-gate in 94 min
 #### **src**: DM-Sim source file
  - config.hpp: **configurations**, constants and macros.
  - Makefile: for compilation. 
- - util.cuh: GPU utility functions.
+ - util_nvgpu.cuh: NVIDIA GPU utility functions.
  - util_cpu.h: CPU utility functions.
  - dmsim_nvgpu_omp.cuh: major DM-Sim source file for 1-GPU or 1-node-N-GPUs with NVIDIA GPU backend.
  - dmsim_nvgpu_mpi.cuh: major DM-Sim source file for N-nodes with NVIDIA GPU backend.
@@ -136,15 +136,17 @@ LIBS = -lm
 ## Prerequisite
 DM-Sim requires the following packages.
 
-|  Dependency  | Version |
-|:-----------: | ------- |
-|     CUDA     | 10.0 or later |
-|  GCC (or XL) | 5.2 or later (16.01 for xlc)  |
-|    OpenMP    | 4.0     |
-| Spectrum-MPI | 10.3    | 
-|  Python      | 2.7     |
-|  Pybind11    | 2.5.0   |
-|  mpi4py      | 3.0.3   | 
+|  Dependency  | Version | Comments |
+|:-----------: | ------- | -------- |
+|     CUDA     | 10.0 or later | For NVIDIA GPU backend | 
+|  GCC (or XL) | 5.2 or later (16.01 for xlc)  | |
+|    OpenMP    | 4.0     | For single-node scale-up |
+| Spectrum-MPI | 10.3    | For NVIDIA GPU cluster scale-out RDMA|
+|  Python      | 3.4     | For Python-API |
+|  Pybind11    | 2.5.0   | For Python-API |
+|  mpi4py      | 3.0.3   | For Python-API cluster scale-out |
+|   ROCM       | 1.6.0   | For AMD GPU backend |
+
 
 To build the scale-up version, we need OpenMP. To build the scale-out version, it needs MPI with GPUDirect support (we only tested using IBM XL and Spectrum-MPI on Summit). 
 
@@ -336,8 +338,6 @@ IBMBackend.get_qasm()
 #### [Ang Li](http://www.angliphd.com/), Pacific Northwest National Laboratory (PNNL)
 
 #### [Sriram Krishnamoorthy](https://hpc.pnl.gov/people/sriram/), Pacific Northwest National Laboratory (PNNL)
-
-#### [Bo Fang](https://www.pnnl.gov/science/staff/staff_info.asp?staff_num=9511), Pacific Northwest National Laboratory (PNNL)
 
 We are currently collaborating with Microsoft Quantum team (Alan Geller, Bettina Heim, Irina Yatsenko, Guen Prawiroatmodjo, Martin Roetteler) on improving the pipeline from Q# to [QIR](https://devblogs.microsoft.com/qsharp/introducing-quantum-intermediate-representation-qir/) to [DM-Sim](https://github.com/microsoft/qsharp-language/blob/main/Specifications/QIR/List.md). Many thanks to their strong support.
 

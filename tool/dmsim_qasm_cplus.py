@@ -1,16 +1,17 @@
 # ---------------------------------------------------------------------------
-# DM-Sim: Density-Matrix quantum circuit simulator based on GPU clusters
-# Version 2.3
+# DM-Sim: Density-Matrix Quantum Circuit Simulation Environement
 # ---------------------------------------------------------------------------
-# File: dmsim_qasm_cplus.py
-# Translate OpenQASM assembly code to DMSim C++ code
-# ---------------------------------------------------------------------------
-# Ang Li, Scientist, Pacific Northwest National Laboratory(PNNL), U.S.
+# Ang Li, Senior Computer Scientist
+# Pacific Northwest National Laboratory(PNNL), U.S.
 # Homepage: http://www.angliphd.com
 # GitHub repo: http://www.github.com/pnnl/DM-Sim
 # PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
 # BSD Lincese.
 # ---------------------------------------------------------------------------
+# File: dmsim_qasm_cplus.py
+# Translate OpenQASM assembly code to DMSim C++ code
+# ---------------------------------------------------------------------------
+
 import argparse
 import string
 import os

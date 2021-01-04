@@ -1,3 +1,17 @@
+# ---------------------------------------------------------------------------
+# DM-Sim: Density-Matrix Quantum Circuit Simulation Environement 
+# ---------------------------------------------------------------------------
+# Ang Li, Senior Computer Scientist
+# Pacific Northwest National Laboratory(PNNL), U.S.
+# Homepage: http://www.angliphd.com
+# GitHub repo: http://www.github.com/pnnl/DM-Sim
+# PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
+# BSD Lincese.
+# ---------------------------------------------------------------------------
+# File: CMakeLists.txt
+# ---------------------------------------------------------------------------
+
+
 CMAKE_MINIMUM_REQUIRED(VERSION 3.9)
 PROJECT(DMSim)
 

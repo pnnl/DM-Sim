@@ -1,7 +1,8 @@
 ## ---------------------------------------------------------------------------
 ## DM-Sim: Density-Matrix Quantum Circuit Simulation Environement
-## Version 2.2
-## Ang Li, Scientist, Pacific Northwest National Laboratory(PNNL), U.S.
+## ---------------------------------------------------------------------------
+## Ang Li, Senior Computer Scientist
+## Pacific Northwest National Laboratory(PNNL), U.S.
 ## Homepage: http://www.angliphd.com
 ## GitHub repo: http://www.github.com/pnnl/DM-Sim
 ## PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
@@ -16,13 +17,14 @@
 import sys
 
 # Using DM-Sim NVGPU backend
-#import libdmsim_py_nvgpu_omp as dmsim_omp
+#import ../src/libdmsim_py_nvgpu_omp as dmsim_omp
 
 # Using DM-Sim CPU backend
-import libdmsim_py_cpu_omp as dmsim_omp
+import ../src/libdmsim_py_cpu_omp as dmsim_omp
 
 # Using DM-Sim AMDGPU backend
-#import libdmsim_py_amdgpu_omp as dmsim_omp
+#import ../src/libdmsim_py_amdgpu_omp as dmsim_omp
+
 
 ## Call via: $python circuit.py num_of_qubits num_of_gpus
 if (len(sys.argv) != 3):

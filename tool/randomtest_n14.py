@@ -1,19 +1,19 @@
-## ---------------------------------------------------------------------------
-## DM-Sim: Density-Matrix quantum circuit simulator based on GPU clusters
-## Version 2.0
-## ---------------------------------------------------------------------------
-## File: randomtest_n14.py
-## A H-gate based random test using Python API (100K H-gates, 14 qubits).
-## Single-node (1 or more GPUs); No inter-GPU communication required.
-## Requires: PyBind11 (https://github.com/pybind/pybind11)
-##           CUDA-10.0 or newer (required by pybind11 for Python API)
-## ---------------------------------------------------------------------------
-## Ang Li, Scientist, Pacific Northwest National Laboratory(PNNL), U.S.
-## Homepage: http://www.angliphd.com
-## GitHub repo: http://www.github.com/pnnl/DM-Sim
-## PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
-## BSD Lincese.
-## ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# DM-Sim: Density-Matrix Quantum Circuit Simulation Environement
+# ---------------------------------------------------------------------------
+# Ang Li, Scientist, Pacific Northwest National Laboratory(PNNL), U.S.
+# Homepage: http://www.angliphd.com
+# GitHub repo: http://www.github.com/pnnl/DM-Sim
+# PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
+# BSD Lincese.
+# ---------------------------------------------------------------------------
+# File: randomtest_n14.py
+# A H-gate based random test using Python API (100K H-gates, 14 qubits).
+# Single-node (1 or more GPUs); No inter-GPU communication required.
+# Requires: PyBind11 (https://github.com/pybind/pybind11)
+#           CUDA-10.0 or newer (required by pybind11 for Python API)
+# ---------------------------------------------------------------------------
+
 import sys
 import dmsim_py_omp_wrapper as dmsim
 import random

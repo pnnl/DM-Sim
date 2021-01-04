@@ -1,7 +1,8 @@
 // ---------------------------------------------------------------------------
-// DM-Sim: Density-Matrix quantum circuit simulator 
-// Version 2.4
-// Ang Li, Scientist, Pacific Northwest National Laboratory(PNNL), U.S.
+// DM-Sim: Density-Matrix Quantum Circuit Simulation Environment
+// ---------------------------------------------------------------------------
+// Ang Li, Senior Computer Scientist
+// Pacific Northwest National Laboratory(PNNL), U.S.
 // Homepage: http://www.angliphd.com
 // GitHub repo: http://www.github.com/pnnl/DM-Sim
 // PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
@@ -12,8 +13,8 @@
 // ---------------------------------------------------------------------------
 
 #include <stdio.h>
-#include "util_cpu.h"
-#include "dmsim_cpu_mpi.hpp"
+#include "../src/util_cpu.h"
+#include "../src/dmsim_cpu_mpi.hpp"
 
 //Use the DMSim namespace to enable C++/CUDA APIs
 using namespace DMSim;

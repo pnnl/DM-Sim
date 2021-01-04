@@ -1,19 +1,19 @@
 // ---------------------------------------------------------------------------
 // DM-Sim: Density-Matrix Quantum Circuit Simulation Environement.
-// Version 2.2
 // ---------------------------------------------------------------------------
-// File: util.cuh
-// Header file in which we defined some utility functions.
-// ---------------------------------------------------------------------------
-// Ang Li, Scientist, Pacific Northwest National Laboratory(PNNL), U.S.
+// Ang Li, Senior Computer Scientist
+// Pacific Northwest National Laboratory(PNNL), U.S.
 // Homepage: http://www.angliphd.com
 // GitHub repo: http://www.github.com/pnnl/DM-Sim
 // PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
 // BSD Lincese.
 // ---------------------------------------------------------------------------
+// File: util_nvgpu.cuh
+// Header file in which we defined some utility functions for NVIDIA GPU backend
+// ---------------------------------------------------------------------------
 
-#ifndef UTIL_CUH
-#define UTIL_CUH
+#ifndef UTIL_NVGPU_CUH
+#define UTIL_NVPUG_CUH
 
 #include <stdio.h>
 #include <sys/time.h>

@@ -1,15 +1,14 @@
 ## ---------------------------------------------------------------------------
 ## DM-Sim: Density-Matrix quantum circuit simulator based on GPU clusters
-## Version 2.0
-## ---------------------------------------------------------------------------
-## File: set_env_summit.sh
-## Environment settings for ORNL summit supercopmuter.
 ## ---------------------------------------------------------------------------
 ## Ang Li, Scientist, Pacific Northwest National Laboratory(PNNL), U.S.
 ## Homepage: http://www.angliphd.com
 ## GitHub repo: http://www.github.com/pnnl/DM-Sim
 ## PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
 ## BSD Lincese.
+## ---------------------------------------------------------------------------
+## File: set_env_summit.sh
+## Environment settings for ORNL summit supercopmuter.
 ## ---------------------------------------------------------------------------
 
 ## ---------------------------------------------------------------------------

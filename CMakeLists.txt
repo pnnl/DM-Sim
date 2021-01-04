@@ -1,5 +1,19 @@
+# ---------------------------------------------------------------------------
+# DM-Sim: Density-Matrix Quantum Circuit Simulation Environement 
+# ---------------------------------------------------------------------------
+# Ang Li, Senior Computer Scientist
+# Pacific Northwest National Laboratory(PNNL), U.S.
+# Homepage: http://www.angliphd.com
+# GitHub repo: http://www.github.com/pnnl/DM-Sim
+# PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
+# BSD Lincese.
+# ---------------------------------------------------------------------------
+# File: CMakeLists.txt
+# ---------------------------------------------------------------------------
+
 CMAKE_MINIMUM_REQUIRED(VERSION 3.9)
 
+#================================== Configuration =======================================
 SET(CMAKE_C_COMPILER "/usr/bin/gcc")
 SET(CMAKE_CXX_COMPILER "/usr/bin/g++")
 
@@ -12,14 +26,18 @@ OPTION(USE_PYTHON "Use Python frontend" OFF)
 OPTION(USE_QIR "Use QIR (Q#/QDK) frontend" ON)
 
 # Define backend
-OPTION(USE_NVGPU "Use NVIDIA GPU backend" OFF)
 OPTION(USE_CPU "Use CPU backend" ON)
+OPTION(USE_NVGPU "Use NVIDIA GPU backend" OFF)
+OPTION(USE_AMD "Use AMD GPU backend" OFF)
 
+# Define OMP/MPI
 OPTION(USE_OPENMP "Use OpenMP for scale-up" OFF)
 OPTION(USE_MPI "Use MPI for scale-out" ON)
+
+# AVX512 for CPU backend
 OPTION(USE_AVX512 "Accelerated by AVX512 on X86-CPU platforms" ON)
 
-# Define GPU Arch
+# Define NVIDIA GPU Arch
 SET(CUDA_ARCH_BIN 70)
 IF (NOT DEFINED ${CMAKE_CUDA_ARCHITECTURES})
     SET(CMAKE_CUDA_ARCHITECTURES ${CUDA_ARCH_BIN})
@@ -91,6 +109,12 @@ IF(USE_NVGPU)
     ENDIF()
 ENDIF()
 
+# AMD GPU Backend
+IF(USE_AMDGPU)
+    FIND_PACKAGE(hcc PATHS /opt/rocm/hcc)
+    SET(CMAKE_C_COMPILER "/opt/rocm/hcc/bin/hipcc")
+    SET(CMAKE_CXX_COMPILER "/opt/rocm/hcc/bin/hipcc")
+ENDIF()
 
 # Python Frontend
 IF(USE_PYTHON)
@@ -155,90 +179,7 @@ IF(USE_PYTHON)
 ENDIF()
 
 INCLUDE_DIRECTORIES("src")
-#ADD_SUBDIRECTORY("example")
-#ADD_SUBDIRECTORY("qasmbench")
+#INCLUDE_DIRECTORIES("example")
+#INCLUDE_DIRECTORIES("qasmbench")
+#INCLUDE_DIRECTORIES("qir")
 
-
-    
-#include_directories(${MPI_INCLUDE_PATH})
-
-#find_package(CUDA REQUIRED)
-##set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}" "-O3 -arch=sm_70 -m64 -std=c++11 -rdc=true --compiler-options -fPIC -Xcompiler -fopenmp -lcudadevrt")
-
-#set(CMAKE_CXX_FLAGS "-O3 -arch=sm_70 -m64 -std=c++11 -rdc=true --compiler-options -fPIC -Xcompiler -fopenmp -lcudadevrt")
-#set(CMAKE_C_FLAGS "-O3 -arch=sm_70 -m64 -std=c++11 -rdc=true --compiler-options -fPIC -Xcompiler -fopenmp -lcudadevrt")
-
-#set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
-#include_directories(${CUDA_INCLUDE_DIRS})
-    
-#find_package(OpenMP)
-
-#set(CMAKE_CXX_STANDARD 11)
-#set(CMAKE_CXX_STANDARD_REQUIRED ON)
-#set(CMAKE_CXX_EXTENSIONS OFF)
-
-#if(NOT CMAKE_BUILD_TYPE)
-    #set(CMAKE_BUILD_TYPE Release)
-#endif()
-
-#add_executable(adder_n10_cpu_omp
-#src/adder_n10_cpu_omp.cpp
-#src/dmsim_cpu_omp.hpp
-#src/config.hpp
-#src/util_cpu.h
-#)
-#
-#if(OpenMP_CXX_FOUND)
-#target_link_libraries(adder_n10_cpu_omp PUBLIC OpenMP::OpenMP_CXX)
-#endif()
-
-#if(OpenMP_CXX_FOUND)
-#target_link_libraries(adder_n10_cpu_omp PUBLIC OpenMP::OpenMP_CXX)
-#endif()
-
-#add_executable(adder_n10_nvgpu_omp
-#src/adder_n10_nvgpu_omp.cu
-#src/dmsim_nvgpu_omp.cuh
-#src/config.hpp
-#src/util.cuh
-#)
-
-#if(OpenMP_CXX_FOUND)
-#target_link_libraries(adder_n10_nvgpu_omp PUBLIC OpenMP::OpenMP_CXX)
-#endif()
-
-
-
-
-#add_executable(adder_n10_cpu_mpi
-    #src/adder_n10_cpu_mpi.cpp
-    #src/dmsim_cpu_mpi.hpp
-    #src/config.hpp
-    #src/util_cpu.h
-    #)
-#target_link_libraries(adder_n10_cpu_mpi ${MPI_LIBRARIES})
-
-#add_executable(adder_n10_nvgpu_mpi
-#src/adder_n10_nvgpu_mpi.cu
-#src/dmsim_nvgpu_mpi.cuh
-#src/config.hpp
-#src/util.cuh
-#)
-#target_link_libraries(adder_n10_nvgpu_mpi ${MPI_LIBRARIES})
-
-
-
-
-
-
-#if(MPI_COMPILE_FLAGS)
-    #set_target_properties(adder_n10_cpu_mpi PROPERTIES
-        #COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
-#endif()
-
-
-
-
-#set_target_properties(adder
-#PROPERTIES CUDA_SEPARABLE_COMPILATION ON)

@@ -1,7 +1,8 @@
 // ---------------------------------------------------------------------------
 // DM-Sim: Density-Matrix Quantum Circuit Simulation Environment
-// Version 2.2
-// Ang Li, Scientist, Pacific Northwest National Laboratory(PNNL), U.S.
+// ---------------------------------------------------------------------------
+// Ang Li, Senior Computer Scientist
+// Pacific Northwest National Laboratory(PNNL), U.S.
 // Homepage: http://www.angliphd.com
 // GitHub repo: http://www.github.com/pnnl/DM-Sim
 // PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
@@ -16,7 +17,7 @@
 #include <pybind11/numpy.h>
 
 #include "config.hpp"
-#include "util.cuh"
+#include "util_nvgpu.cuh"
 #include "dmsim_nvgpu_mpi.cuh"
 
 namespace py = pybind11;

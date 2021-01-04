@@ -1,7 +1,13 @@
 ## ---------------------------------------------------------------------------
-## DM-Sim: Density-Matrix quantum circuit simulator based on GPU clusters
-## Version 2.1
+## DM-Sim: Density-Matrix Quantum Circuit Simulation Environement 
 ## ---------------------------------------------------------------------------
+## Ang Li, Senior Computer Scientist
+## Pacific Northwest National Laboratory(PNNL), U.S.
+## Homepage: http://www.angliphd.com
+## GitHub repo: http://www.github.com/pnnl/DM-Sim
+## PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
+## BSD Lincese.
+### ---------------------------------------------------------------------------
 ## File: adder_n10_mpi.py
 ## A 10-qubit adder example using Python API using MPI for GPU Cluster.
 ## Requires GPUDirect-RDMA support.
@@ -9,13 +15,7 @@
 ##           LLVM-10.0.1 (required by QIR on Summit)
 ##           CUDA-11.0 or newer (required by QIR on Summit)
 ##           MPI4PY (https://github.com/mpi4py/mpi4py) 
-## ---------------------------------------------------------------------------
-## Ang Li, Scientist, Pacific Northwest National Laboratory(PNNL), U.S.
-## Homepage: http://www.angliphd.com
-## GitHub repo: http://www.github.com/pnnl/DM-Sim
-## PNNL-IPID: 31919-E, ECCN: EAR99, IR: PNNL-SA-143160
-## BSD Lincese.
-## ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 
 from scipy.optimize import minimize
 import subprocess
