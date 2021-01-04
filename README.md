@@ -6,7 +6,10 @@ A Density Matrix Quantum Simulation Environment for Single-GPU/CPU, Single-Node-
 
 ## Current version
 
-Latest version: **2.4**
+Latest version: **2.5**
+
+#### Version-2.5 Updates:
+ - Add AMD HIP GPU backend.
 
 #### Version-2.4 Updates:
  - Add CMake for easy build-up.
