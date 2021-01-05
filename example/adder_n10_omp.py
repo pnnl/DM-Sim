@@ -17,13 +17,13 @@
 import sys
 
 # Using DM-Sim NVGPU backend
-#import ../src/libdmsim_py_nvgpu_omp as dmsim_omp
+import libdmsim_py_nvgpu_omp as dmsim_omp
 
 # Using DM-Sim CPU backend
-import ../src/libdmsim_py_cpu_omp as dmsim_omp
+#import libdmsim_py_cpu_omp as dmsim_omp
 
 # Using DM-Sim AMDGPU backend
-#import ../src/libdmsim_py_amdgpu_omp as dmsim_omp
+#import libdmsim_py_amdgpu_omp as dmsim_omp
 
 
 ## Call via: $python circuit.py num_of_qubits num_of_gpus
