@@ -37,7 +37,7 @@ int main()
 //=================================== Initialization =====================================
     srand(RAND_SEED);
     int n_qubits = 10;
-    int n_cpus = 512;
+    int n_cpus = 8;
 
     //Obtain a simulator object
     Simulation sim(n_qubits, n_cpus);
