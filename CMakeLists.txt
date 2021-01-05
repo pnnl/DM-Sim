@@ -21,18 +21,18 @@ MESSAGE(STATUS "CMake version: ${CMAKE_VERSION}")
 PROJECT(DMSim VERSION 2.4 LANGUAGES CXX CUDA)
 
 # Define frontend
-OPTION(USE_CXX "Use C++ frontend" ON)
-OPTION(USE_PYTHON "Use Python frontend" OFF)
+OPTION(USE_CXX "Use C++ frontend" OFF)
+OPTION(USE_PYTHON "Use Python frontend" ON)
 OPTION(USE_QIR "Use QIR (Q#/QDK) frontend" OFF)
 
 # Define backend
-OPTION(USE_CPU "Use CPU backend" ON)
+OPTION(USE_CPU "Use CPU backend" OFF)
 OPTION(USE_NVGPU "Use NVIDIA GPU backend" OFF)
-OPTION(USE_AMD "Use AMD GPU backend" OFF)
+OPTION(USE_AMDGPU "Use AMD GPU backend" ON)
 
 # Define OMP/MPI
-OPTION(USE_OPENMP "Use OpenMP for scale-up" ON)
-OPTION(USE_MPI "Use MPI for scale-out" OFF)
+OPTION(USE_OPENMP "Use OpenMP for scale-up" OFF)
+OPTION(USE_MPI "Use MPI for scale-out" ON)
 
 # AVX512 for CPU backend
 OPTION(USE_AVX512 "Accelerated by AVX512 on X86-CPU platforms" OFF)
@@ -111,15 +111,15 @@ ENDIF()
 
 # AMD GPU Backend
 IF(USE_AMDGPU)
-    FIND_PACKAGE(hcc PATHS /opt/rocm/hcc)
-    SET(CMAKE_C_COMPILER "/opt/rocm/hcc/bin/hipcc")
-    SET(CMAKE_CXX_COMPILER "/opt/rocm/hcc/bin/hipcc")
+    FIND_PACKAGE(hip PATHS /opt/rocm-3.10.0/bin)
+    SET(CMAKE_CXX_COMPILER "/opt/rocm-3.10.0/bin/hipcc")
 ENDIF()
 
 # Python Frontend
 IF(USE_PYTHON)
     FIND_PACKAGE(pybind11)
     INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_DIRS})
+    INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_DIRS}/../)
     IF(USE_NVGPU)
         IF(USE_OPENMP)
             SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --compiler-options=' -fopenmp -Wall -shared -std=c++11 -fPIC' ")
@@ -129,6 +129,14 @@ IF(USE_PYTHON)
         ENDIF()
     ENDIF()
     IF(USE_CPU)
+        IF(USE_OPENMP)
+            SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -Wall -shared -std=c++11 -fPIC ")
+        ENDIF()
+        IF(USE_MPI)
+            SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -shared -std=c++11 -fPIC ")
+        ENDIF()
+    ENDIF()
+    IF(USE_AMDGPU)
         IF(USE_OPENMP)
             SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -Wall -shared -std=c++11 -fPIC ")
         ENDIF()
@@ -176,10 +184,23 @@ IF(USE_PYTHON)
             TARGET_LINK_LIBRARIES("dmsim_py_cpu_mpi" ${MPI_LIBRARIES})
         ENDIF()
     ENDIF()
+    IF(USE_AMDGPU)
+        IF(USE_OPENMP)
+            ADD_LIBRARY("dmsim_py_amdgpu_omp" SHARED "src/py_amdgpu_omp_wrapper.cpp")
+        ENDIF()
+        IF(USE_MPI)
+            ADD_LIBRARY("dmsim_py_amdgpu_mpi" SHARED "src/py_amdgpu_mpi_wrapper.cpp")
+            TARGET_LINK_LIBRARIES("dmsim_py_amdgpu_mpi" ${MPI_LIBRARIES})
+        ENDIF()
+    ENDIF()
 ENDIF()
 
 INCLUDE_DIRECTORIES("src")
-ADD_SUBDIRECTORY("example")
+
+IF(USE_CXX)
+    ADD_SUBDIRECTORY("example")
+ENDIF()
+
 #ADD_SUBDIRECTORY("qasmbench")
 #ADD_SUBDIRECTORY("qir")
 
