@@ -17,22 +17,22 @@
 #include <mpi.h>
 #include <stdexcept>
 
-#include "config.hpp"
+#include "../src/config.hpp"
 #include "SimulatorStub.hpp"
 
 #ifdef CPU
-#include "util_cpu.h"
-#include "dmsim_cpu_mpi.hpp"
+#include "../src/util_cpu.h"
+#include "../src/dmsim_cpu_mpi.hpp"
 #endif
 
 #ifdef NVGPU
-#include "util_nvgpu.cuh"
-#include "dmsim_nvgpu_mpi.cuh"
+#include "../src/util_nvgpu.cuh"
+#include "../src/dmsim_nvgpu_mpi.cuh"
 #endif
 
 #ifdef AMDGPU
-#include "util_amdgpu.hpp"
-#include "dmsim_amdgpu_mpi.hpp"
+#include "../src/util_amdgpu.hpp"
+#include "../src/dmsim_amdgpu_mpi.hpp"
 #endif
 
 using namespace DMSim;
