@@ -335,9 +335,9 @@ IBMBackend.get_qasm()
 
 ## Authors 
 
-#### [Ang Li](http://www.angliphd.com/), Pacific Northwest National Laboratory (PNNL)
+#### [Ang Li](http://www.angliphd.com/), Senior Computer Scientist, Pacific Northwest National Laboratory (PNNL)
 
-#### [Sriram Krishnamoorthy](https://hpc.pnl.gov/people/sriram/), Pacific Northwest National Laboratory (PNNL)
+#### [Sriram Krishnamoorthy](https://hpc.pnl.gov/people/sriram/), Lab Fellow, Pacific Northwest National Laboratory (PNNL)
 
 We are currently collaborating with Microsoft Quantum team (Alan Geller, Bettina Heim, Irina Yatsenko, Guen Prawiroatmodjo, Martin Roetteler) on improving the pipeline from Q# to [QIR](https://devblogs.microsoft.com/qsharp/introducing-quantum-intermediate-representation-qir/) to [DM-Sim](https://github.com/microsoft/qsharp-language/blob/main/Specifications/QIR/List.md). Many thanks to their strong support.
 
