@@ -972,11 +972,11 @@ void C2_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
         const IdxType qubit1, const IdxType qubit2)
 {
     const int tid = 0;
-    const IdxType q0dim = (1 << max(ctrl, qubit) );
-    const IdxType q1dim = (1 << min(ctrl, qubit) );
-    assert (ctrl != qubit); //Non-cloning
-    const IdxType outer_factor = ((sim->dim) + q0dim + q0dim - 1) >> (max(ctrl,qubit)+1);
-    const IdxType mider_factor = (q0dim + q1dim + q1dim - 1) >> (min(ctrl,qubit)+1);
+    const IdxType q0dim = (1 << max(qubit1, qubit2) );
+    const IdxType q1dim = (1 << min(qubit1, qubit2) );
+    assert (qubit1 != qubit2); //Non-cloning
+    const IdxType outer_factor = ((sim->dim) + q0dim + q0dim - 1) >> (max(qubit1,qubit2)+1);
+    const IdxType mider_factor = (q0dim + q1dim + q1dim - 1) >> (min(qubit1,qubit2)+1);
     const IdxType inner_factor = q1dim;
     const IdxType qubit1_dim = (1 << qubit1);
     const IdxType qubit2_dim = (1 << qubit2);
