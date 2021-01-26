@@ -1062,52 +1062,79 @@ __device__ __noinline__ void C2_GATE(const Simulation* sim, ValType* dm_real, Va
 {
     grid_group grid = this_grid(); 
     const int tid = blockDim.x * blockIdx.x + threadIdx.x; 
-    const IdxType outer_bound1 = (1 << ( (sim->n_qubits) - qubit1 - 1)); 
-    const IdxType inner_bound1 = (1 << qubit1); 
-    const IdxType outer_bound2 = (1 << ( (sim->n_qubits) - qubit2 - 1)); 
-    const IdxType inner_bound2 = (1 << qubit2); 
-    for (IdxType i = tid; i < outer_bound1* inner_bound2 * (sim->m_gpu); i++)
-    { 
-        IdxType col = i / (inner_bound1 * outer_bound1); 
-        IdxType outer1 = (i % (inner_bound1 * outer_bound1)) / inner_bound1; 
-        IdxType inner1 =  i % inner_bound1; 
-        IdxType offset1 = (2 * outer1) * inner_bound1; 
-        IdxType pos0 = col * (sim->dim) + offset1 + inner1; 
-        IdxType pos1 = pos0 + inner_bound1; 
+    const IdxType q0dim = (1 << max(qubit1, qubit2) );
+    const IdxType q1dim = (1 << min(qubit1, qubit2) );
+    assert (qubit1 != qubit2); //Non-cloning
+    const IdxType outer_factor = ((sim->dim) + q0dim + q0dim - 1) >> (max(qubit1,qubit2)+1);
+    const IdxType mider_factor = (q0dim + q1dim + q1dim - 1) >> (min(qubit1,qubit2)+1);
+    const IdxType inner_factor = q1dim;
+    const IdxType qubit1_dim = (1 << qubit1);
+    const IdxType qubit2_dim = (1 << qubit2);
+
+    for (IdxType i = tid; i < outer_factor * mider_factor * inner_factor * (sim->m_gpu); 
+            i+=blockDim.x*gridDim.x)
+    {
+        IdxType col = i / (outer_factor * mider_factor * inner_factor);
+        IdxType row = i % (outer_factor * mider_factor * inner_factor);
+        IdxType outer = ((row/inner_factor) / (mider_factor)) * (q0dim+q0dim);
+        IdxType mider = ((row/inner_factor) % (mider_factor)) * (q1dim+q1dim);
+        IdxType inner = row % inner_factor;
+        IdxType pos0 = col * (sim->dim) + outer + mider + inner;
+        IdxType pos1 = col * (sim->dim) + outer + mider + inner + qubit2_dim;
+        IdxType pos2 = col * (sim->dim) + outer + mider + inner + qubit1_dim;
+        IdxType pos3 = col * (sim->dim) + outer + mider + inner + q0dim + q1dim;
+        
+        assert (pos0 < dim*m_gpu); //ensure not out of bound
+        assert (pos1 < dim*m_gpu); //ensure not out of bound
+        assert (pos2 < dim*m_gpu); //ensure not out of bound
+        assert (pos3 < dim*m_gpu); //ensure not out of bound
+
         const ValType el0_real = dm_real[pos0]; 
         const ValType el0_imag = dm_imag[pos0];
         const ValType el1_real = dm_real[pos1]; 
         const ValType el1_imag = dm_imag[pos1];
+        const ValType el2_real = dm_real[pos2]; 
+        const ValType el2_imag = dm_imag[pos2];
+        const ValType el3_real = dm_real[pos3]; 
+        const ValType el3_imag = dm_imag[pos3];
 
-        for (IdxType i = tid; i < outer_bound2* inner_bound2; i+=blockDim.x*gridDim.x)
-        { 
-            IdxType outer2 = i / inner_bound2; 
-            IdxType inner2 = i % inner_bound2;
-            IdxType offset2 = (2 * outer2) * inner_bound2; 
-            IdxType pos2 = col * (sim->dim) + offset2 + inner2; 
-            IdxType pos3 = pos2 + inner_bound2; 
-            const ValType el2_real = dm_real[pos2]; 
-            const ValType el2_imag = dm_imag[pos2];
-            const ValType el3_real = dm_real[pos3]; 
-            const ValType el3_imag = dm_imag[pos3];
-            dm_real[pos0] = (e00_real * el0_real) - (e00_imag * el0_imag)
-                           +(e01_real * el1_real) - (e01_imag * el1_imag)
-                           +(e02_real * el2_real) - (e02_imag * el2_imag)
-                           +(e03_real * el3_real) - (e03_imag * el3_imag);
-            dm_real[pos1] = (e10_real * el0_real) - (e10_imag * el0_imag)
-                           +(e11_real * el1_real) - (e11_imag * el1_imag)
-                           +(e12_real * el2_real) - (e12_imag * el2_imag)
-                           +(e13_real * el3_real) - (e13_imag * el3_imag);
-            dm_real[pos1] = (e20_real * el0_real) - (e20_imag * el0_imag)
-                           +(e21_real * el1_real) - (e21_imag * el1_imag)
-                           +(e22_real * el2_real) - (e22_imag * el2_imag)
-                           +(e23_real * el3_real) - (e23_imag * el3_imag);
-            dm_real[pos1] = (e30_real * el0_real) - (e30_imag * el0_imag)
-                           +(e31_real * el1_real) - (e31_imag * el1_imag)
-                           +(e32_real * el2_real) - (e32_imag * el2_imag)
-                           +(e33_real * el3_real) - (e33_imag * el3_imag);
-        }
+        //Real part
+        dm_real[pos0] = (e00_real * el0_real) - (e00_imag * el0_imag)
+            +(e01_real * el1_real) - (e01_imag * el1_imag)
+            +(e02_real * el2_real) - (e02_imag * el2_imag)
+            +(e03_real * el3_real) - (e03_imag * el3_imag);
+        dm_real[pos1] = (e10_real * el0_real) - (e10_imag * el0_imag)
+            +(e11_real * el1_real) - (e11_imag * el1_imag)
+            +(e12_real * el2_real) - (e12_imag * el2_imag)
+            +(e13_real * el3_real) - (e13_imag * el3_imag);
+        dm_real[pos2] = (e20_real * el0_real) - (e20_imag * el0_imag)
+            +(e21_real * el1_real) - (e21_imag * el1_imag)
+            +(e22_real * el2_real) - (e22_imag * el2_imag)
+            +(e23_real * el3_real) - (e23_imag * el3_imag);
+        dm_real[pos3] = (e30_real * el0_real) - (e30_imag * el0_imag)
+            +(e31_real * el1_real) - (e31_imag * el1_imag)
+            +(e32_real * el2_real) - (e32_imag * el2_imag)
+            +(e33_real * el3_real) - (e33_imag * el3_imag);
+        
+        //Imag part
+        dm_imag[pos0] = (e00_real * el0_imag) + (e00_imag * el0_real)
+            +(e01_real * el1_imag) + (e01_imag * el1_real)
+            +(e02_real * el2_imag) + (e02_imag * el2_real)
+            +(e03_real * el3_imag) + (e03_imag * el3_real);
+        dm_imag[pos1] = (e10_real * el0_imag) + (e10_imag * el0_real)
+            +(e11_real * el1_imag) + (e11_imag * el1_real)
+            +(e12_real * el2_imag) + (e12_imag * el2_real)
+            +(e13_real * el3_imag) + (e13_imag * el3_real);
+        dm_imag[pos2] = (e20_real * el0_imag) + (e20_imag * el0_real)
+            +(e21_real * el1_imag) + (e21_imag * el1_real)
+            +(e22_real * el2_imag) + (e22_imag * el2_real)
+            +(e23_real * el3_imag) + (e23_imag * el3_real);
+        dm_imag[pos3] = (e30_real * el0_imag) + (e30_imag * el0_real)
+            +(e31_real * el1_imag) + (e31_imag * el1_real)
+            +(e32_real * el2_imag) + (e32_imag * el2_real)
+            +(e33_real * el3_imag) + (e33_imag * el3_real);
     }
+    grid.sync();
 }
 
 //============== CX Gate ================

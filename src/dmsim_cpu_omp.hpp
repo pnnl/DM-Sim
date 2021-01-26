@@ -991,6 +991,106 @@ void C1_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
     OP_TAIL;
 }
 
+//============== Unified 2-qubit Gate ================
+void C2_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, 
+        const ValType e00_real, const ValType e00_imag,
+        const ValType e01_real, const ValType e01_imag,
+        const ValType e02_real, const ValType e02_imag,
+        const ValType e03_real, const ValType e03_imag,
+        const ValType e10_real, const ValType e10_imag,
+        const ValType e11_real, const ValType e11_imag,
+        const ValType e12_real, const ValType e12_imag,
+        const ValType e13_real, const ValType e13_imag,
+        const ValType e20_real, const ValType e20_imag,
+        const ValType e21_real, const ValType e21_imag,
+        const ValType e22_real, const ValType e22_imag,
+        const ValType e23_real, const ValType e23_imag,
+        const ValType e30_real, const ValType e30_imag,
+        const ValType e31_real, const ValType e31_imag,
+        const ValType e32_real, const ValType e32_imag,
+        const ValType e33_real, const ValType e33_imag,
+        const IdxType qubit1, const IdxType qubit2)
+{
+    const int tid = 0;
+    const IdxType q0dim = (1 << max(ctrl, qubit) );
+    const IdxType q1dim = (1 << min(ctrl, qubit) );
+    assert (ctrl != qubit); //Non-cloning
+    const IdxType outer_factor = ((sim->dim) + q0dim + q0dim - 1) >> (max(ctrl,qubit)+1);
+    const IdxType mider_factor = (q0dim + q1dim + q1dim - 1) >> (min(ctrl,qubit)+1);
+    const IdxType inner_factor = q1dim;
+    const IdxType qubit1_dim = (1 << qubit1);
+    const IdxType qubit2_dim = (1 << qubit2);
+
+    for (IdxType i = tid; i < outer_factor * mider_factor * inner_factor * (sim->m_cpu); 
+            i+=1)
+    {
+        IdxType col = i / (outer_factor * mider_factor * inner_factor);
+        IdxType row = i % (outer_factor * mider_factor * inner_factor);
+        IdxType outer = ((row/inner_factor) / (mider_factor)) * (q0dim+q0dim);
+        IdxType mider = ((row/inner_factor) % (mider_factor)) * (q1dim+q1dim);
+        IdxType inner = row % inner_factor;
+
+        IdxType pos0 = col * (sim->dim) + outer + mider + inner;
+        IdxType pos1 = col * (sim->dim) + outer + mider + inner + qubit2_dim;
+        IdxType pos2 = col * (sim->dim) + outer + mider + inner + qubit1_dim;
+        IdxType pos3 = col * (sim->dim) + outer + mider + inner + q0dim + q1dim;
+
+        assert (pos0 < dim*m_cpu); //ensure not out of bound
+        assert (pos1 < dim*m_cpu); //ensure not out of bound
+        assert (pos2 < dim*m_cpu); //ensure not out of bound
+        assert (pos3 < dim*m_cpu); //ensure not out of bound
+
+        const ValType el0_real = dm_real[pos0]; 
+        const ValType el0_imag = dm_imag[pos0];
+        const ValType el1_real = dm_real[pos1]; 
+        const ValType el1_imag = dm_imag[pos1];
+        const ValType el2_real = dm_real[pos2]; 
+        const ValType el2_imag = dm_imag[pos2];
+        const ValType el3_real = dm_real[pos3]; 
+        const ValType el3_imag = dm_imag[pos3];
+
+        //Real part
+        dm_real[pos0] = (e00_real * el0_real) - (e00_imag * el0_imag)
+            +(e01_real * el1_real) - (e01_imag * el1_imag)
+            +(e02_real * el2_real) - (e02_imag * el2_imag)
+            +(e03_real * el3_real) - (e03_imag * el3_imag);
+        dm_real[pos1] = (e10_real * el0_real) - (e10_imag * el0_imag)
+            +(e11_real * el1_real) - (e11_imag * el1_imag)
+            +(e12_real * el2_real) - (e12_imag * el2_imag)
+            +(e13_real * el3_real) - (e13_imag * el3_imag);
+        dm_real[pos2] = (e20_real * el0_real) - (e20_imag * el0_imag)
+            +(e21_real * el1_real) - (e21_imag * el1_imag)
+            +(e22_real * el2_real) - (e22_imag * el2_imag)
+            +(e23_real * el3_real) - (e23_imag * el3_imag);
+        dm_real[pos3] = (e30_real * el0_real) - (e30_imag * el0_imag)
+            +(e31_real * el1_real) - (e31_imag * el1_imag)
+            +(e32_real * el2_real) - (e32_imag * el2_imag)
+            +(e33_real * el3_real) - (e33_imag * el3_imag);
+        
+        //Imag part
+        dm_imag[pos0] = (e00_real * el0_imag) + (e00_imag * el0_real)
+            +(e01_real * el1_imag) + (e01_imag * el1_real)
+            +(e02_real * el2_imag) + (e02_imag * el2_real)
+            +(e03_real * el3_imag) + (e03_imag * el3_real);
+        dm_imag[pos1] = (e10_real * el0_imag) + (e10_imag * el0_real)
+            +(e11_real * el1_imag) + (e11_imag * el1_real)
+            +(e12_real * el2_imag) + (e12_imag * el2_real)
+            +(e13_real * el3_imag) + (e13_imag * el3_real);
+        dm_imag[pos2] = (e20_real * el0_imag) + (e20_imag * el0_real)
+            +(e21_real * el1_imag) + (e21_imag * el1_real)
+            +(e22_real * el2_imag) + (e22_imag * el2_real)
+            +(e23_real * el3_imag) + (e23_imag * el3_real);
+        dm_imag[pos3] = (e30_real * el0_imag) + (e30_imag * el0_real)
+            +(e31_real * el1_imag) + (e31_imag * el1_real)
+            +(e32_real * el2_imag) + (e32_imag * el2_real)
+            +(e33_real * el3_imag) + (e33_imag * el3_real);
+    }
+}
+
+
+
+
+
 //============== CX Gate ================
 //Controlled-NOT or CNOT
 /** CX   = [1 0 0 0]
@@ -1384,6 +1484,310 @@ void C1_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
 
     OP_TAIL;
 }
+
+
+//============== Unified 2-qubit Gate ================
+void C2_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, 
+        const ValType e00_real, const ValType e00_imag,
+        const ValType e01_real, const ValType e01_imag,
+        const ValType e02_real, const ValType e02_imag,
+        const ValType e03_real, const ValType e03_imag,
+        const ValType e10_real, const ValType e10_imag,
+        const ValType e11_real, const ValType e11_imag,
+        const ValType e12_real, const ValType e12_imag,
+        const ValType e13_real, const ValType e13_imag,
+        const ValType e20_real, const ValType e20_imag,
+        const ValType e21_real, const ValType e21_imag,
+        const ValType e22_real, const ValType e22_imag,
+        const ValType e23_real, const ValType e23_imag,
+        const ValType e30_real, const ValType e30_imag,
+        const ValType e31_real, const ValType e31_imag,
+        const ValType e32_real, const ValType e32_imag,
+        const ValType e33_real, const ValType e33_imag,
+        const IdxType qubit1, const IdxType qubit2)
+{
+    const IdxType q0dim = (1 << max(ctrl, qubit) );
+    const IdxType q1dim = (1 << min(ctrl, qubit) );
+    assert (ctrl != qubit); //Non-cloning
+    const IdxType outer_factor = ((sim->dim) + q0dim + q0dim - 1) >> (max(ctrl,qubit)+1);
+    const IdxType mider_factor = (q0dim + q1dim + q1dim - 1) >> (min(ctrl,qubit)+1);
+    const IdxType inner_factor = q1dim;
+    const IdxType qubit1_dim = (1 << qubit1);
+    const IdxType qubit2_dim = (1 << qubit2);
+
+    //convert input parameters to vector form
+    const __m512d e00_real_v = _mm512_set1_pd(e00_real);
+    const __m512d e00_imag_v = _mm512_set1_pd(e00_imag);
+    const __m512d e01_real_v = _mm512_set1_pd(e01_real);
+    const __m512d e01_imag_v = _mm512_set1_pd(e01_imag);
+    const __m512d e02_real_v = _mm512_set1_pd(e02_real);
+    const __m512d e02_imag_v = _mm512_set1_pd(e02_imag);
+    const __m512d e03_real_v = _mm512_set1_pd(e03_real);
+    const __m512d e03_imag_v = _mm512_set1_pd(e03_imag);
+
+    const __m512d e10_real_v = _mm512_set1_pd(e10_real);
+    const __m512d e10_imag_v = _mm512_set1_pd(e10_imag);
+    const __m512d e11_real_v = _mm512_set1_pd(e11_real);
+    const __m512d e11_imag_v = _mm512_set1_pd(e11_imag);
+    const __m512d e12_real_v = _mm512_set1_pd(e12_real);
+    const __m512d e12_imag_v = _mm512_set1_pd(e12_imag);
+    const __m512d e13_real_v = _mm512_set1_pd(e13_real);
+    const __m512d e13_imag_v = _mm512_set1_pd(e13_imag);
+
+    const __m512d e20_real_v = _mm512_set1_pd(e20_real);
+    const __m512d e20_imag_v = _mm512_set1_pd(e20_imag);
+    const __m512d e21_real_v = _mm512_set1_pd(e21_real);
+    const __m512d e21_imag_v = _mm512_set1_pd(e21_imag);
+    const __m512d e22_real_v = _mm512_set1_pd(e22_real);
+    const __m512d e22_imag_v = _mm512_set1_pd(e22_imag);
+    const __m512d e23_real_v = _mm512_set1_pd(e23_real);
+    const __m512d e23_imag_v = _mm512_set1_pd(e23_imag);
+
+    const __m512d e30_real_v = _mm512_set1_pd(e30_real);
+    const __m512d e30_imag_v = _mm512_set1_pd(e30_imag);
+    const __m512d e31_real_v = _mm512_set1_pd(e31_real);
+    const __m512d e31_imag_v = _mm512_set1_pd(e31_imag);
+    const __m512d e32_real_v = _mm512_set1_pd(e32_real);
+    const __m512d e32_imag_v = _mm512_set1_pd(e32_imag);
+    const __m512d e33_real_v = _mm512_set1_pd(e33_real);
+    const __m512d e33_imag_v = _mm512_set1_pd(e33_imag);
+
+    //start
+    const __m256i q0dimx2_v = _mm256_set1_epi32(q0dim+q0dim); 
+    const __m256i q1dimx2_v = _mm256_set1_epi32(q1dim+q1dim); 
+    const __m256i qdimx2_v = _mm256_set1_epi32(q0dim+q1dim); 
+    const __m256i mider_factor_v = _mm256_set1_epi32(mider_factor); 
+    const __m256i factors_v =  _mm256_set1_epi32(inner_factor*mider_factor*outer_factor); 
+    const __m256i qubit1_dim_v = _mm256_set1_epi32(qubit1_dim); 
+    const __m256i qubit2_dim_v = _mm256_set1_epi32(qubit2_dim); 
+
+    const __m256i inner_factor_rm_v = _mm256_set1_epi32(inner_factor-1);
+    const __m256i dim_v = _mm256_set1_epi32(sim->dim);
+    const __m256i inc=_mm256_set1_epi32(8); 
+    __m256i idx=_mm256_set_epi32(0,1,2,3,4,5,6,7); 
+
+    assert(outer_factor*mider_factor <= (1u<<20));
+    const __m256i div_f0_v = _mm256_set1_epi32( (1u<<20)/(outer_factor*mider_factor));
+    const __m256i div_f1_v = _mm256_set1_epi32( (1u<<20)/mider_factor);
+
+    for (IdxType i=0; i<outer_factor*mider_factor*inner_factor*(sim->m_cpu);
+            i+=8, idx=_mm256_add_epi32(idx,inc)) 
+    {
+        __m256i tmp0, tmp1, tmp2, tmp3; 
+        tmp0 = _mm256_srli_epi32(idx,min(ctrl,qubit)); //idx/inner_factor
+        tmp1 = _mm256_mullo_epi32(tmp0,div_f0_v);
+        
+        // IdxType col = i / (outer_factor * mider_factor * inner_factor);
+        const __m256i col = _mm256_srli_epi32(tmp1,20);
+        tmp2 = _mm256_mullo_epi32(col, factors_v);
+        // IdxType row = i % (outer_factor * mider_factor * inner_factor);
+        const __m256i row = _mm256_sub_epi32(idx, tmp2); 
+
+        // IdxType outer = ((row/inner_factor) / (mider_factor)) * (q0dim+q0dim);
+        tmp0 = _mm256_srli_epi32(row,min(ctrl,qubit)); // =>row/inner_factor
+        tmp1 = _mm256_mullo_epi32(tmp0,div_f1_v);  
+        tmp1 = _mm256_srli_epi32(tmp1,20);// =>(row/inner_factor)/mider_factor
+
+        const __m256i outer = _mm256_mullo_epi32(tmp1,q0dimx2_v);
+        // IdxType mider = ((row/inner_factor) % (mider_factor)) * (q1dim+q1dim);
+        tmp2 = _mm256_mullo_epi32(tmp1,mider_factor_v);  //(row/inner_factor)/mider_factor * mider_factor
+        tmp3 = _mm256_sub_epi32(tmp0,tmp2);//(row/inner_factor) - ((row/inner_factor)/mider_factor * mider_factor)
+        const __m256i mider = _mm256_mullo_epi32(tmp3,q1dimx2_v);
+        // IdxType inner = row % inner_factor;
+        const __m256i inner = _mm256_and_si256(row,inner_factor_rm_v); //row & (inner_factor-1) 
+
+        tmp0 = _mm256_mullo_epi32(col,dim_v);
+        tmp1 = _mm256_add_epi32(tmp0,outer);
+        tmp2 = _mm256_add_epi32(tmp1,mider);
+        tmp3 = _mm256_add_epi32(tmp2,inner);
+
+        const __m256i pos0 = tmp3;
+        const __m256i pos1 = _mm256_add_epi32(tmp3,qubit2_dim_v);
+        const __m256i pos2 = _mm256_add_epi32(tmp3,qubit1_dim_v);
+        const __m256i pos3 = _mm256_add_epi32(tmp3,qdimx2_v);
+        
+        const __m512d el0_real = _mm512_i32gather_pd(pos0, dm_real, 8);
+        const __m512d el0_imag = _mm512_i32gather_pd(pos0, dm_imag, 8);
+        const __m512d el1_real = _mm512_i32gather_pd(pos1, dm_real, 8);
+        const __m512d el1_imag = _mm512_i32gather_pd(pos1, dm_imag, 8);
+        const __m512d el2_real = _mm512_i32gather_pd(pos2, dm_real, 8);
+        const __m512d el2_imag = _mm512_i32gather_pd(pos2, dm_imag, 8);
+        const __m512d el3_real = _mm512_i32gather_pd(pos3, dm_real, 8);
+        const __m512d el3_imag = _mm512_i32gather_pd(pos3, dm_imag, 8);
+
+        __m512d tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6;
+        __m512d tmp7, tmp8, tmp9, tmp10, tmp11, tmp12, tmp13, tmp14;
+        
+        //dm_real[pos0] = (e00_real * el0_real) - (e00_imag * el0_imag)
+        //+(e01_real * el1_real) - (e01_imag * el1_imag)
+        //+(e02_real * el2_real) - (e02_imag * el2_imag)
+        //+(e03_real * el3_real) - (e03_imag * el3_imag);
+        tmp0 = _mm512_mul_pd(e00_real_v, el0_real);
+        tmp1 = _mm512_mul_pd(e00_imag_v, el0_imag);
+        tmp2 = _mm512_mul_pd(e01_real_v, el1_real);
+        tmp3 = _mm512_mul_pd(e01_imag_v, el1_imag);
+        tmp4 = _mm512_sub_pd(tmp0, tmp1);
+        tmp5 = _mm512_sub_pd(tmp2, tmp3);
+        tmp6 = _mm512_add_pd(tmp4, tmp5);
+        tmp7  = _mm512_mul_pd(e02_real_v, el2_real);
+        tmp8  = _mm512_mul_pd(e02_imag_v, el2_imag);
+        tmp9  = _mm512_mul_pd(e03_real_v, el3_real);
+        tmp10 = _mm512_mul_pd(e03_imag_v, el3_imag);
+        tmp11 = _mm512_sub_pd(tmp7,  tmp8);
+        tmp12 = _mm512_sub_pd(tmp9,  tmp10);
+        tmp13 = _mm512_add_pd(tmp11, tmp12);
+        tmp14 = _mm512_add_pd(tmp6, tmp13);
+        _mm512_i32scatter_pd(dm_real, pos0, tmp14, 8);
+
+        //dm_real[pos1] = (e10_real * el0_real) - (e10_imag * el0_imag)
+        //+(e11_real * el1_real) - (e11_imag * el1_imag)
+        //+(e12_real * el2_real) - (e12_imag * el2_imag)
+        //+(e13_real * el3_real) - (e13_imag * el3_imag);
+        tmp0 = _mm512_mul_pd(e10_real_v, el0_real);
+        tmp1 = _mm512_mul_pd(e10_imag_v, el0_imag);
+        tmp2 = _mm512_mul_pd(e11_real_v, el1_real);
+        tmp3 = _mm512_mul_pd(e11_imag_v, el1_imag);
+        tmp4 = _mm512_sub_pd(tmp0, tmp1);
+        tmp5 = _mm512_sub_pd(tmp2, tmp3);
+        tmp6 = _mm512_add_pd(tmp4, tmp5);
+        tmp7  = _mm512_mul_pd(e12_real_v, el2_real);
+        tmp8  = _mm512_mul_pd(e12_imag_v, el2_imag);
+        tmp9  = _mm512_mul_pd(e13_real_v, el3_real);
+        tmp10 = _mm512_mul_pd(e13_imag_v, el3_imag);
+        tmp11 = _mm512_sub_pd(tmp7,  tmp8);
+        tmp12 = _mm512_sub_pd(tmp9,  tmp10);
+        tmp13 = _mm512_add_pd(tmp11, tmp12);
+        tmp14 = _mm512_add_pd(tmp6, tmp13);
+        _mm512_i32scatter_pd(dm_real, pos1, tmp14, 8);
+
+        //dm_real[pos2] = (e20_real * el0_real) - (e20_imag * el0_imag)
+        //+(e21_real * el1_real) - (e21_imag * el1_imag)
+        //+(e22_real * el2_real) - (e22_imag * el2_imag)
+        //+(e23_real * el3_real) - (e23_imag * el3_imag);
+        tmp0 = _mm512_mul_pd(e20_real_v, el0_real);
+        tmp1 = _mm512_mul_pd(e20_imag_v, el0_imag);
+        tmp2 = _mm512_mul_pd(e21_real_v, el1_real);
+        tmp3 = _mm512_mul_pd(e21_imag_v, el1_imag);
+        tmp4 = _mm512_sub_pd(tmp0, tmp1);
+        tmp5 = _mm512_sub_pd(tmp2, tmp3);
+        tmp6 = _mm512_add_pd(tmp4, tmp5);
+        tmp7  = _mm512_mul_pd(e22_real_v, el2_real);
+        tmp8  = _mm512_mul_pd(e22_imag_v, el2_imag);
+        tmp9  = _mm512_mul_pd(e23_real_v, el3_real);
+        tmp10 = _mm512_mul_pd(e23_imag_v, el3_imag);
+        tmp11 = _mm512_sub_pd(tmp7,  tmp8);
+        tmp12 = _mm512_sub_pd(tmp9,  tmp10);
+        tmp13 = _mm512_add_pd(tmp11, tmp12);
+        tmp14 = _mm512_add_pd(tmp6, tmp13);
+        _mm512_i32scatter_pd(dm_real, pos2, tmp14, 8);
+
+        //dm_real[pos3] = (e30_real * el0_real) - (e30_imag * el0_imag)
+        //+(e31_real * el1_real) - (e31_imag * el1_imag)
+        //+(e32_real * el2_real) - (e32_imag * el2_imag)
+        //+(e33_real * el3_real) - (e33_imag * el3_imag);
+        tmp0 = _mm512_mul_pd(e30_real_v, el0_real);
+        tmp1 = _mm512_mul_pd(e30_imag_v, el0_imag);
+        tmp2 = _mm512_mul_pd(e31_real_v, el1_real);
+        tmp3 = _mm512_mul_pd(e31_imag_v, el1_imag);
+        tmp4 = _mm512_sub_pd(tmp0, tmp1);
+        tmp5 = _mm512_sub_pd(tmp2, tmp3);
+        tmp6 = _mm512_add_pd(tmp4, tmp5);
+        tmp7  = _mm512_mul_pd(e32_real_v, el2_real);
+        tmp8  = _mm512_mul_pd(e32_imag_v, el2_imag);
+        tmp9  = _mm512_mul_pd(e33_real_v, el3_real);
+        tmp10 = _mm512_mul_pd(e33_imag_v, el3_imag);
+        tmp11 = _mm512_sub_pd(tmp7,  tmp8);
+        tmp12 = _mm512_sub_pd(tmp9,  tmp10);
+        tmp13 = _mm512_add_pd(tmp11, tmp12);
+        tmp14 = _mm512_add_pd(tmp6, tmp13);
+        _mm512_i32scatter_pd(dm_real, pos3, tmp14, 8);
+
+        //dm_imag[pos0] = (e00_real * el0_imag) + (e00_imag * el0_real)
+        //+(e01_real * el1_imag) + (e01_imag * el1_real)
+        //+(e02_real * el2_imag) + (e02_imag * el2_real)
+        //+(e03_real * el3_imag) + (e03_imag * el3_real);
+        tmp0 = _mm512_mul_pd(e00_real_v, el0_imag);
+        tmp1 = _mm512_mul_pd(e00_imag_v, el0_real);
+        tmp2 = _mm512_mul_pd(e01_real_v, el1_imag);
+        tmp3 = _mm512_mul_pd(e01_imag_v, el1_real);
+        tmp4 = _mm512_add_pd(tmp0, tmp1);
+        tmp5 = _mm512_add_pd(tmp2, tmp3);
+        tmp6 = _mm512_add_pd(tmp4, tmp5);
+        tmp7  = _mm512_mul_pd(e02_real_v, el2_imag);
+        tmp8  = _mm512_mul_pd(e02_imag_v, el2_real);
+        tmp9  = _mm512_mul_pd(e03_real_v, el3_imag);
+        tmp10 = _mm512_mul_pd(e03_imag_v, el3_real);
+        tmp11 = _mm512_add_pd(tmp7,  tmp8);
+        tmp12 = _mm512_add_pd(tmp9,  tmp10);
+        tmp13 = _mm512_add_pd(tmp11, tmp12);
+        tmp14 = _mm512_add_pd(tmp6, tmp13);
+        _mm512_i32scatter_pd(dm_imag, pos0, tmp14, 8);
+
+        //dm_imag[pos1] = (e10_real * el0_imag) + (e10_imag * el0_real)
+        //+(e11_real * el1_imag) + (e11_imag * el1_real)
+        //+(e12_real * el2_imag) + (e12_imag * el2_real)
+        //+(e13_real * el3_imag) + (e13_imag * el3_real);
+        tmp0 = _mm512_mul_pd(e10_real_v, el0_imag);
+        tmp1 = _mm512_mul_pd(e10_imag_v, el0_real);
+        tmp2 = _mm512_mul_pd(e11_real_v, el1_imag);
+        tmp3 = _mm512_mul_pd(e11_imag_v, el1_real);
+        tmp4 = _mm512_add_pd(tmp0, tmp1);
+        tmp5 = _mm512_add_pd(tmp2, tmp3);
+        tmp6 = _mm512_add_pd(tmp4, tmp5);
+        tmp7  = _mm512_mul_pd(e12_real_v, el2_imag);
+        tmp8  = _mm512_mul_pd(e12_imag_v, el2_real);
+        tmp9  = _mm512_mul_pd(e13_real_v, el3_imag);
+        tmp10 = _mm512_mul_pd(e13_imag_v, el3_real);
+        tmp11 = _mm512_add_pd(tmp7,  tmp8);
+        tmp12 = _mm512_add_pd(tmp9,  tmp10);
+        tmp13 = _mm512_add_pd(tmp11, tmp12);
+        tmp14 = _mm512_add_pd(tmp6, tmp13);
+        _mm512_i32scatter_pd(dm_imag, pos1, tmp14, 8);
+
+        //dm_imag[pos2] = (e20_real * el0_imag) + (e20_imag * el0_real)
+        //+(e21_real * el1_imag) + (e21_imag * el1_real)
+        //+(e22_real * el2_imag) + (e22_imag * el2_real)
+        //+(e23_real * el3_imag) + (e23_imag * el3_real);
+        tmp0 = _mm512_mul_pd(e20_real_v, el0_imag);
+        tmp1 = _mm512_mul_pd(e20_imag_v, el0_real);
+        tmp2 = _mm512_mul_pd(e21_real_v, el1_imag);
+        tmp3 = _mm512_mul_pd(e21_imag_v, el1_real);
+        tmp4 = _mm512_add_pd(tmp0, tmp1);
+        tmp5 = _mm512_add_pd(tmp2, tmp3);
+        tmp6 = _mm512_add_pd(tmp4, tmp5);
+        tmp7  = _mm512_mul_pd(e22_real_v, el2_imag);
+        tmp8  = _mm512_mul_pd(e22_imag_v, el2_real);
+        tmp9  = _mm512_mul_pd(e23_real_v, el3_imag);
+        tmp10 = _mm512_mul_pd(e23_imag_v, el3_real);
+        tmp11 = _mm512_add_pd(tmp7,  tmp8);
+        tmp12 = _mm512_add_pd(tmp9,  tmp10);
+        tmp13 = _mm512_add_pd(tmp11, tmp12);
+        tmp14 = _mm512_add_pd(tmp6, tmp13);
+        _mm512_i32scatter_pd(dm_imag, pos2, tmp14, 8);
+
+        //dm_imag[pos3] = (e30_real * el0_imag) + (e30_imag * el0_real)
+        //+(e31_real * el1_imag) + (e31_imag * el1_real)
+        //+(e32_real * el2_imag) + (e32_imag * el2_real)
+        //+(e33_real * el3_imag) + (e33_imag * el3_real);
+        tmp0 = _mm512_mul_pd(e30_real_v, el0_imag);
+        tmp1 = _mm512_mul_pd(e30_imag_v, el0_real);
+        tmp2 = _mm512_mul_pd(e31_real_v, el1_imag);
+        tmp3 = _mm512_mul_pd(e31_imag_v, el1_real);
+        tmp4 = _mm512_add_pd(tmp0, tmp1);
+        tmp5 = _mm512_add_pd(tmp2, tmp3);
+        tmp6 = _mm512_add_pd(tmp4, tmp5);
+        tmp7  = _mm512_mul_pd(e32_real_v, el2_imag);
+        tmp8  = _mm512_mul_pd(e32_imag_v, el2_real);
+        tmp9  = _mm512_mul_pd(e33_real_v, el3_imag);
+        tmp10 = _mm512_mul_pd(e33_imag_v, el3_real);
+        tmp11 = _mm512_add_pd(tmp7,  tmp8);
+        tmp12 = _mm512_add_pd(tmp9,  tmp10);
+        tmp13 = _mm512_add_pd(tmp11, tmp12);
+        tmp14 = _mm512_add_pd(tmp6, tmp13);
+        _mm512_i32scatter_pd(dm_imag, pos3, tmp14, 8);
+    }
+}
+
 
 //============== CX Gate ================
 //Controlled-NOT or CNOT
@@ -2277,75 +2681,6 @@ void RYY_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
 }
  
 
-
-//============== Unified 2-qubit Gate ================
-void C2_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, 
-        const ValType e00_real, const ValType e00_imag,
-        const ValType e01_real, const ValType e01_imag,
-        const ValType e02_real, const ValType e02_imag,
-        const ValType e03_real, const ValType e03_imag,
-        const ValType e10_real, const ValType e10_imag,
-        const ValType e11_real, const ValType e11_imag,
-        const ValType e12_real, const ValType e12_imag,
-        const ValType e13_real, const ValType e13_imag,
-        const ValType e20_real, const ValType e20_imag,
-        const ValType e21_real, const ValType e21_imag,
-        const ValType e22_real, const ValType e22_imag,
-        const ValType e23_real, const ValType e23_imag,
-        const ValType e30_real, const ValType e30_imag,
-        const ValType e31_real, const ValType e31_imag,
-        const ValType e32_real, const ValType e32_imag,
-        const ValType e33_real, const ValType e33_imag,
-        const IdxType qubit1, const IdxType qubit2)
-{
-    const int tid = 0;
-    const IdxType outer_bound1 = (1 << ( (sim->n_qubits) - qubit1 - 1)); 
-    const IdxType inner_bound1 = (1 << qubit1); 
-    const IdxType outer_bound2 = (1 << ( (sim->n_qubits) - qubit2 - 1)); 
-    const IdxType inner_bound2 = (1 << qubit2); 
-    for (IdxType i = tid; i < outer_bound1* inner_bound2 * (sim->m_cpu); i++)
-    { 
-        IdxType col = i / (inner_bound1 * outer_bound1); 
-        IdxType outer1 = (i % (inner_bound1 * outer_bound1)) / inner_bound1; 
-        IdxType inner1 =  i % inner_bound1; 
-        IdxType offset1 = (2 * outer1) * inner_bound1; 
-        IdxType pos0 = col * (sim->dim) + offset1 + inner1; 
-        IdxType pos1 = pos0 + inner_bound1; 
-        const ValType el0_real = dm_real[pos0]; 
-        const ValType el0_imag = dm_imag[pos0];
-        const ValType el1_real = dm_real[pos1]; 
-        const ValType el1_imag = dm_imag[pos1];
-
-        for (IdxType i = tid; i < outer_bound2* inner_bound2; i+=1)
-        { 
-            IdxType outer2 = i / inner_bound2; 
-            IdxType inner2 = i % inner_bound2;
-            IdxType offset2 = (2 * outer2) * inner_bound2; 
-            IdxType pos2 = col * (sim->dim) + offset2 + inner2; 
-            IdxType pos3 = pos2 + inner_bound2; 
-            const ValType el2_real = dm_real[pos2]; 
-            const ValType el2_imag = dm_imag[pos2];
-            const ValType el3_real = dm_real[pos3]; 
-            const ValType el3_imag = dm_imag[pos3];
-            dm_real[pos0] = (e00_real * el0_real) - (e00_imag * el0_imag)
-                           +(e01_real * el1_real) - (e01_imag * el1_imag)
-                           +(e02_real * el2_real) - (e02_imag * el2_imag)
-                           +(e03_real * el3_real) - (e03_imag * el3_imag);
-            dm_real[pos1] = (e10_real * el0_real) - (e10_imag * el0_imag)
-                           +(e11_real * el1_real) - (e11_imag * el1_imag)
-                           +(e12_real * el2_real) - (e12_imag * el2_imag)
-                           +(e13_real * el3_real) - (e13_imag * el3_imag);
-            dm_real[pos1] = (e20_real * el0_real) - (e20_imag * el0_imag)
-                           +(e21_real * el1_real) - (e21_imag * el1_imag)
-                           +(e22_real * el2_real) - (e22_imag * el2_imag)
-                           +(e23_real * el3_real) - (e23_imag * el3_imag);
-            dm_real[pos1] = (e30_real * el0_real) - (e30_imag * el0_imag)
-                           +(e31_real * el1_real) - (e31_imag * el1_imag)
-                           +(e32_real * el2_real) - (e32_imag * el2_imag)
-                           +(e33_real * el3_real) - (e33_imag * el3_imag);
-        }
-    }
-}
 
 //==================================== Gate Ops  ========================================
 
