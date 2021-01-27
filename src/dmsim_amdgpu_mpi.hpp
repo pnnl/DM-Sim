@@ -1084,10 +1084,10 @@ __device__ __noinline__ void C2_GATE(const Simulation* sim, ValType* dm_real, Va
         IdxType pos2 = col * (sim->dim) + outer + mider + inner + qubit1_dim;
         IdxType pos3 = col * (sim->dim) + outer + mider + inner + q0dim + q1dim;
         
-        assert (pos0 < dim*m_gpu); //ensure not out of bound
-        assert (pos1 < dim*m_gpu); //ensure not out of bound
-        assert (pos2 < dim*m_gpu); //ensure not out of bound
-        assert (pos3 < dim*m_gpu); //ensure not out of bound
+        //assert (pos0 < (dim->dim)*(dim->m_gpu)); //ensure not out of bound
+        //assert (pos1 < (dim->dim)*(dim->m_gpu)); //ensure not out of bound
+        //assert (pos2 < (dim->dim)*(dim->m_gpu)); //ensure not out of bound
+        //assert (pos3 < (dim->dim)*(dim->m_gpu)); //ensure not out of bound
 
         const ValType el0_real = dm_real[pos0]; 
         const ValType el0_imag = dm_imag[pos0];
