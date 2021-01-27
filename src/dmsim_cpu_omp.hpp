@@ -1506,11 +1506,11 @@ void C2_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
         const ValType e33_real, const ValType e33_imag,
         const IdxType qubit1, const IdxType qubit2)
 {
-    const IdxType q0dim = (1 << max(ctrl, qubit) );
-    const IdxType q1dim = (1 << min(ctrl, qubit) );
+    const IdxType q0dim = (1 << max(qubit1, qubit2) );
+    const IdxType q1dim = (1 << min(qubit1, qubit2) );
     assert (ctrl != qubit); //Non-cloning
-    const IdxType outer_factor = ((sim->dim) + q0dim + q0dim - 1) >> (max(ctrl,qubit)+1);
-    const IdxType mider_factor = (q0dim + q1dim + q1dim - 1) >> (min(ctrl,qubit)+1);
+    const IdxType outer_factor = ((sim->dim) + q0dim + q0dim - 1) >> (max(qubit1,qubit2)+1);
+    const IdxType mider_factor = (q0dim + q1dim + q1dim - 1) >> (min(qubit1,qubit2)+1);
     const IdxType inner_factor = q1dim;
     const IdxType qubit1_dim = (1 << qubit1);
     const IdxType qubit2_dim = (1 << qubit2);
@@ -1574,7 +1574,7 @@ void C2_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
             i+=8, idx=_mm256_add_epi32(idx,inc)) 
     {
         __m256i tmp0, tmp1, tmp2, tmp3; 
-        tmp0 = _mm256_srli_epi32(idx,min(ctrl,qubit)); //idx/inner_factor
+        tmp0 = _mm256_srli_epi32(idx,min(qubit1,qubit2)); //idx/inner_factor
         tmp1 = _mm256_mullo_epi32(tmp0,div_f0_v);
         
         // IdxType col = i / (outer_factor * mider_factor * inner_factor);
@@ -1584,7 +1584,7 @@ void C2_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
         const __m256i row = _mm256_sub_epi32(idx, tmp2); 
 
         // IdxType outer = ((row/inner_factor) / (mider_factor)) * (q0dim+q0dim);
-        tmp0 = _mm256_srli_epi32(row,min(ctrl,qubit)); // =>row/inner_factor
+        tmp0 = _mm256_srli_epi32(row,min(qubit1,qubit2)); // =>row/inner_factor
         tmp1 = _mm256_mullo_epi32(tmp0,div_f1_v);  
         tmp1 = _mm256_srli_epi32(tmp1,20);// =>(row/inner_factor)/mider_factor
 
@@ -1615,176 +1615,176 @@ void C2_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
         const __m512d el3_real = _mm512_i32gather_pd(pos3, dm_real, 8);
         const __m512d el3_imag = _mm512_i32gather_pd(pos3, dm_imag, 8);
 
-        __m512d tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6;
-        __m512d tmp7, tmp8, tmp9, tmp10, tmp11, tmp12, tmp13, tmp14;
+        __m512d v0, v1, v2, v3, v4, v5, v6;
+        __m512d v7, v8, v9, v10, v11, v12, v13, v14;
         
         //dm_real[pos0] = (e00_real * el0_real) - (e00_imag * el0_imag)
         //+(e01_real * el1_real) - (e01_imag * el1_imag)
         //+(e02_real * el2_real) - (e02_imag * el2_imag)
         //+(e03_real * el3_real) - (e03_imag * el3_imag);
-        tmp0 = _mm512_mul_pd(e00_real_v, el0_real);
-        tmp1 = _mm512_mul_pd(e00_imag_v, el0_imag);
-        tmp2 = _mm512_mul_pd(e01_real_v, el1_real);
-        tmp3 = _mm512_mul_pd(e01_imag_v, el1_imag);
-        tmp4 = _mm512_sub_pd(tmp0, tmp1);
-        tmp5 = _mm512_sub_pd(tmp2, tmp3);
-        tmp6 = _mm512_add_pd(tmp4, tmp5);
-        tmp7  = _mm512_mul_pd(e02_real_v, el2_real);
-        tmp8  = _mm512_mul_pd(e02_imag_v, el2_imag);
-        tmp9  = _mm512_mul_pd(e03_real_v, el3_real);
-        tmp10 = _mm512_mul_pd(e03_imag_v, el3_imag);
-        tmp11 = _mm512_sub_pd(tmp7,  tmp8);
-        tmp12 = _mm512_sub_pd(tmp9,  tmp10);
-        tmp13 = _mm512_add_pd(tmp11, tmp12);
-        tmp14 = _mm512_add_pd(tmp6, tmp13);
-        _mm512_i32scatter_pd(dm_real, pos0, tmp14, 8);
+        v0 = _mm512_mul_pd(e00_real_v, el0_real);
+        v1 = _mm512_mul_pd(e00_imag_v, el0_imag);
+        v2 = _mm512_mul_pd(e01_real_v, el1_real);
+        v3 = _mm512_mul_pd(e01_imag_v, el1_imag);
+        v4 = _mm512_sub_pd(v0, v1);
+        v5 = _mm512_sub_pd(v2, v3);
+        v6 = _mm512_add_pd(v4, v5);
+        v7  = _mm512_mul_pd(e02_real_v, el2_real);
+        v8  = _mm512_mul_pd(e02_imag_v, el2_imag);
+        v9  = _mm512_mul_pd(e03_real_v, el3_real);
+        v10 = _mm512_mul_pd(e03_imag_v, el3_imag);
+        v11 = _mm512_sub_pd(v7,  v8);
+        v12 = _mm512_sub_pd(v9,  v10);
+        v13 = _mm512_add_pd(v11, v12);
+        v14 = _mm512_add_pd(v6, v13);
+        _mm512_i32scatter_pd(dm_real, pos0, v14, 8);
 
         //dm_real[pos1] = (e10_real * el0_real) - (e10_imag * el0_imag)
         //+(e11_real * el1_real) - (e11_imag * el1_imag)
         //+(e12_real * el2_real) - (e12_imag * el2_imag)
         //+(e13_real * el3_real) - (e13_imag * el3_imag);
-        tmp0 = _mm512_mul_pd(e10_real_v, el0_real);
-        tmp1 = _mm512_mul_pd(e10_imag_v, el0_imag);
-        tmp2 = _mm512_mul_pd(e11_real_v, el1_real);
-        tmp3 = _mm512_mul_pd(e11_imag_v, el1_imag);
-        tmp4 = _mm512_sub_pd(tmp0, tmp1);
-        tmp5 = _mm512_sub_pd(tmp2, tmp3);
-        tmp6 = _mm512_add_pd(tmp4, tmp5);
-        tmp7  = _mm512_mul_pd(e12_real_v, el2_real);
-        tmp8  = _mm512_mul_pd(e12_imag_v, el2_imag);
-        tmp9  = _mm512_mul_pd(e13_real_v, el3_real);
-        tmp10 = _mm512_mul_pd(e13_imag_v, el3_imag);
-        tmp11 = _mm512_sub_pd(tmp7,  tmp8);
-        tmp12 = _mm512_sub_pd(tmp9,  tmp10);
-        tmp13 = _mm512_add_pd(tmp11, tmp12);
-        tmp14 = _mm512_add_pd(tmp6, tmp13);
-        _mm512_i32scatter_pd(dm_real, pos1, tmp14, 8);
+        v0 = _mm512_mul_pd(e10_real_v, el0_real);
+        v1 = _mm512_mul_pd(e10_imag_v, el0_imag);
+        v2 = _mm512_mul_pd(e11_real_v, el1_real);
+        v3 = _mm512_mul_pd(e11_imag_v, el1_imag);
+        v4 = _mm512_sub_pd(v0, v1);
+        v5 = _mm512_sub_pd(v2, v3);
+        v6 = _mm512_add_pd(v4, v5);
+        v7  = _mm512_mul_pd(e12_real_v, el2_real);
+        v8  = _mm512_mul_pd(e12_imag_v, el2_imag);
+        v9  = _mm512_mul_pd(e13_real_v, el3_real);
+        v10 = _mm512_mul_pd(e13_imag_v, el3_imag);
+        v11 = _mm512_sub_pd(v7,  v8);
+        v12 = _mm512_sub_pd(v9,  v10);
+        v13 = _mm512_add_pd(v11, v12);
+        v14 = _mm512_add_pd(v6, v13);
+        _mm512_i32scatter_pd(dm_real, pos1, v14, 8);
 
         //dm_real[pos2] = (e20_real * el0_real) - (e20_imag * el0_imag)
         //+(e21_real * el1_real) - (e21_imag * el1_imag)
         //+(e22_real * el2_real) - (e22_imag * el2_imag)
         //+(e23_real * el3_real) - (e23_imag * el3_imag);
-        tmp0 = _mm512_mul_pd(e20_real_v, el0_real);
-        tmp1 = _mm512_mul_pd(e20_imag_v, el0_imag);
-        tmp2 = _mm512_mul_pd(e21_real_v, el1_real);
-        tmp3 = _mm512_mul_pd(e21_imag_v, el1_imag);
-        tmp4 = _mm512_sub_pd(tmp0, tmp1);
-        tmp5 = _mm512_sub_pd(tmp2, tmp3);
-        tmp6 = _mm512_add_pd(tmp4, tmp5);
-        tmp7  = _mm512_mul_pd(e22_real_v, el2_real);
-        tmp8  = _mm512_mul_pd(e22_imag_v, el2_imag);
-        tmp9  = _mm512_mul_pd(e23_real_v, el3_real);
-        tmp10 = _mm512_mul_pd(e23_imag_v, el3_imag);
-        tmp11 = _mm512_sub_pd(tmp7,  tmp8);
-        tmp12 = _mm512_sub_pd(tmp9,  tmp10);
-        tmp13 = _mm512_add_pd(tmp11, tmp12);
-        tmp14 = _mm512_add_pd(tmp6, tmp13);
-        _mm512_i32scatter_pd(dm_real, pos2, tmp14, 8);
+        v0 = _mm512_mul_pd(e20_real_v, el0_real);
+        v1 = _mm512_mul_pd(e20_imag_v, el0_imag);
+        v2 = _mm512_mul_pd(e21_real_v, el1_real);
+        v3 = _mm512_mul_pd(e21_imag_v, el1_imag);
+        v4 = _mm512_sub_pd(v0, v1);
+        v5 = _mm512_sub_pd(v2, v3);
+        v6 = _mm512_add_pd(v4, v5);
+        v7  = _mm512_mul_pd(e22_real_v, el2_real);
+        v8  = _mm512_mul_pd(e22_imag_v, el2_imag);
+        v9  = _mm512_mul_pd(e23_real_v, el3_real);
+        v10 = _mm512_mul_pd(e23_imag_v, el3_imag);
+        v11 = _mm512_sub_pd(v7,  v8);
+        v12 = _mm512_sub_pd(v9,  v10);
+        v13 = _mm512_add_pd(v11, v12);
+        v14 = _mm512_add_pd(v6, v13);
+        _mm512_i32scatter_pd(dm_real, pos2, v14, 8);
 
         //dm_real[pos3] = (e30_real * el0_real) - (e30_imag * el0_imag)
         //+(e31_real * el1_real) - (e31_imag * el1_imag)
         //+(e32_real * el2_real) - (e32_imag * el2_imag)
         //+(e33_real * el3_real) - (e33_imag * el3_imag);
-        tmp0 = _mm512_mul_pd(e30_real_v, el0_real);
-        tmp1 = _mm512_mul_pd(e30_imag_v, el0_imag);
-        tmp2 = _mm512_mul_pd(e31_real_v, el1_real);
-        tmp3 = _mm512_mul_pd(e31_imag_v, el1_imag);
-        tmp4 = _mm512_sub_pd(tmp0, tmp1);
-        tmp5 = _mm512_sub_pd(tmp2, tmp3);
-        tmp6 = _mm512_add_pd(tmp4, tmp5);
-        tmp7  = _mm512_mul_pd(e32_real_v, el2_real);
-        tmp8  = _mm512_mul_pd(e32_imag_v, el2_imag);
-        tmp9  = _mm512_mul_pd(e33_real_v, el3_real);
-        tmp10 = _mm512_mul_pd(e33_imag_v, el3_imag);
-        tmp11 = _mm512_sub_pd(tmp7,  tmp8);
-        tmp12 = _mm512_sub_pd(tmp9,  tmp10);
-        tmp13 = _mm512_add_pd(tmp11, tmp12);
-        tmp14 = _mm512_add_pd(tmp6, tmp13);
-        _mm512_i32scatter_pd(dm_real, pos3, tmp14, 8);
+        v0 = _mm512_mul_pd(e30_real_v, el0_real);
+        v1 = _mm512_mul_pd(e30_imag_v, el0_imag);
+        v2 = _mm512_mul_pd(e31_real_v, el1_real);
+        v3 = _mm512_mul_pd(e31_imag_v, el1_imag);
+        v4 = _mm512_sub_pd(v0, v1);
+        v5 = _mm512_sub_pd(v2, v3);
+        v6 = _mm512_add_pd(v4, v5);
+        v7  = _mm512_mul_pd(e32_real_v, el2_real);
+        v8  = _mm512_mul_pd(e32_imag_v, el2_imag);
+        v9  = _mm512_mul_pd(e33_real_v, el3_real);
+        v10 = _mm512_mul_pd(e33_imag_v, el3_imag);
+        v11 = _mm512_sub_pd(v7,  v8);
+        v12 = _mm512_sub_pd(v9,  v10);
+        v13 = _mm512_add_pd(v11, v12);
+        v14 = _mm512_add_pd(v6, v13);
+        _mm512_i32scatter_pd(dm_real, pos3, v14, 8);
 
         //dm_imag[pos0] = (e00_real * el0_imag) + (e00_imag * el0_real)
         //+(e01_real * el1_imag) + (e01_imag * el1_real)
         //+(e02_real * el2_imag) + (e02_imag * el2_real)
         //+(e03_real * el3_imag) + (e03_imag * el3_real);
-        tmp0 = _mm512_mul_pd(e00_real_v, el0_imag);
-        tmp1 = _mm512_mul_pd(e00_imag_v, el0_real);
-        tmp2 = _mm512_mul_pd(e01_real_v, el1_imag);
-        tmp3 = _mm512_mul_pd(e01_imag_v, el1_real);
-        tmp4 = _mm512_add_pd(tmp0, tmp1);
-        tmp5 = _mm512_add_pd(tmp2, tmp3);
-        tmp6 = _mm512_add_pd(tmp4, tmp5);
-        tmp7  = _mm512_mul_pd(e02_real_v, el2_imag);
-        tmp8  = _mm512_mul_pd(e02_imag_v, el2_real);
-        tmp9  = _mm512_mul_pd(e03_real_v, el3_imag);
-        tmp10 = _mm512_mul_pd(e03_imag_v, el3_real);
-        tmp11 = _mm512_add_pd(tmp7,  tmp8);
-        tmp12 = _mm512_add_pd(tmp9,  tmp10);
-        tmp13 = _mm512_add_pd(tmp11, tmp12);
-        tmp14 = _mm512_add_pd(tmp6, tmp13);
-        _mm512_i32scatter_pd(dm_imag, pos0, tmp14, 8);
+        v0 = _mm512_mul_pd(e00_real_v, el0_imag);
+        v1 = _mm512_mul_pd(e00_imag_v, el0_real);
+        v2 = _mm512_mul_pd(e01_real_v, el1_imag);
+        v3 = _mm512_mul_pd(e01_imag_v, el1_real);
+        v4 = _mm512_add_pd(v0, v1);
+        v5 = _mm512_add_pd(v2, v3);
+        v6 = _mm512_add_pd(v4, v5);
+        v7  = _mm512_mul_pd(e02_real_v, el2_imag);
+        v8  = _mm512_mul_pd(e02_imag_v, el2_real);
+        v9  = _mm512_mul_pd(e03_real_v, el3_imag);
+        v10 = _mm512_mul_pd(e03_imag_v, el3_real);
+        v11 = _mm512_add_pd(v7,  v8);
+        v12 = _mm512_add_pd(v9,  v10);
+        v13 = _mm512_add_pd(v11, v12);
+        v14 = _mm512_add_pd(v6, v13);
+        _mm512_i32scatter_pd(dm_imag, pos0, v14, 8);
 
         //dm_imag[pos1] = (e10_real * el0_imag) + (e10_imag * el0_real)
         //+(e11_real * el1_imag) + (e11_imag * el1_real)
         //+(e12_real * el2_imag) + (e12_imag * el2_real)
         //+(e13_real * el3_imag) + (e13_imag * el3_real);
-        tmp0 = _mm512_mul_pd(e10_real_v, el0_imag);
-        tmp1 = _mm512_mul_pd(e10_imag_v, el0_real);
-        tmp2 = _mm512_mul_pd(e11_real_v, el1_imag);
-        tmp3 = _mm512_mul_pd(e11_imag_v, el1_real);
-        tmp4 = _mm512_add_pd(tmp0, tmp1);
-        tmp5 = _mm512_add_pd(tmp2, tmp3);
-        tmp6 = _mm512_add_pd(tmp4, tmp5);
-        tmp7  = _mm512_mul_pd(e12_real_v, el2_imag);
-        tmp8  = _mm512_mul_pd(e12_imag_v, el2_real);
-        tmp9  = _mm512_mul_pd(e13_real_v, el3_imag);
-        tmp10 = _mm512_mul_pd(e13_imag_v, el3_real);
-        tmp11 = _mm512_add_pd(tmp7,  tmp8);
-        tmp12 = _mm512_add_pd(tmp9,  tmp10);
-        tmp13 = _mm512_add_pd(tmp11, tmp12);
-        tmp14 = _mm512_add_pd(tmp6, tmp13);
-        _mm512_i32scatter_pd(dm_imag, pos1, tmp14, 8);
+        v0 = _mm512_mul_pd(e10_real_v, el0_imag);
+        v1 = _mm512_mul_pd(e10_imag_v, el0_real);
+        v2 = _mm512_mul_pd(e11_real_v, el1_imag);
+        v3 = _mm512_mul_pd(e11_imag_v, el1_real);
+        v4 = _mm512_add_pd(v0, v1);
+        v5 = _mm512_add_pd(v2, v3);
+        v6 = _mm512_add_pd(v4, v5);
+        v7  = _mm512_mul_pd(e12_real_v, el2_imag);
+        v8  = _mm512_mul_pd(e12_imag_v, el2_real);
+        v9  = _mm512_mul_pd(e13_real_v, el3_imag);
+        v10 = _mm512_mul_pd(e13_imag_v, el3_real);
+        v11 = _mm512_add_pd(v7,  v8);
+        v12 = _mm512_add_pd(v9,  v10);
+        v13 = _mm512_add_pd(v11, v12);
+        v14 = _mm512_add_pd(v6, v13);
+        _mm512_i32scatter_pd(dm_imag, pos1, v14, 8);
 
         //dm_imag[pos2] = (e20_real * el0_imag) + (e20_imag * el0_real)
         //+(e21_real * el1_imag) + (e21_imag * el1_real)
         //+(e22_real * el2_imag) + (e22_imag * el2_real)
         //+(e23_real * el3_imag) + (e23_imag * el3_real);
-        tmp0 = _mm512_mul_pd(e20_real_v, el0_imag);
-        tmp1 = _mm512_mul_pd(e20_imag_v, el0_real);
-        tmp2 = _mm512_mul_pd(e21_real_v, el1_imag);
-        tmp3 = _mm512_mul_pd(e21_imag_v, el1_real);
-        tmp4 = _mm512_add_pd(tmp0, tmp1);
-        tmp5 = _mm512_add_pd(tmp2, tmp3);
-        tmp6 = _mm512_add_pd(tmp4, tmp5);
-        tmp7  = _mm512_mul_pd(e22_real_v, el2_imag);
-        tmp8  = _mm512_mul_pd(e22_imag_v, el2_real);
-        tmp9  = _mm512_mul_pd(e23_real_v, el3_imag);
-        tmp10 = _mm512_mul_pd(e23_imag_v, el3_real);
-        tmp11 = _mm512_add_pd(tmp7,  tmp8);
-        tmp12 = _mm512_add_pd(tmp9,  tmp10);
-        tmp13 = _mm512_add_pd(tmp11, tmp12);
-        tmp14 = _mm512_add_pd(tmp6, tmp13);
-        _mm512_i32scatter_pd(dm_imag, pos2, tmp14, 8);
+        v0 = _mm512_mul_pd(e20_real_v, el0_imag);
+        v1 = _mm512_mul_pd(e20_imag_v, el0_real);
+        v2 = _mm512_mul_pd(e21_real_v, el1_imag);
+        v3 = _mm512_mul_pd(e21_imag_v, el1_real);
+        v4 = _mm512_add_pd(v0, v1);
+        v5 = _mm512_add_pd(v2, v3);
+        v6 = _mm512_add_pd(v4, v5);
+        v7  = _mm512_mul_pd(e22_real_v, el2_imag);
+        v8  = _mm512_mul_pd(e22_imag_v, el2_real);
+        v9  = _mm512_mul_pd(e23_real_v, el3_imag);
+        v10 = _mm512_mul_pd(e23_imag_v, el3_real);
+        v11 = _mm512_add_pd(v7,  v8);
+        v12 = _mm512_add_pd(v9,  v10);
+        v13 = _mm512_add_pd(v11, v12);
+        v14 = _mm512_add_pd(v6, v13);
+        _mm512_i32scatter_pd(dm_imag, pos2, v14, 8);
 
         //dm_imag[pos3] = (e30_real * el0_imag) + (e30_imag * el0_real)
         //+(e31_real * el1_imag) + (e31_imag * el1_real)
         //+(e32_real * el2_imag) + (e32_imag * el2_real)
         //+(e33_real * el3_imag) + (e33_imag * el3_real);
-        tmp0 = _mm512_mul_pd(e30_real_v, el0_imag);
-        tmp1 = _mm512_mul_pd(e30_imag_v, el0_real);
-        tmp2 = _mm512_mul_pd(e31_real_v, el1_imag);
-        tmp3 = _mm512_mul_pd(e31_imag_v, el1_real);
-        tmp4 = _mm512_add_pd(tmp0, tmp1);
-        tmp5 = _mm512_add_pd(tmp2, tmp3);
-        tmp6 = _mm512_add_pd(tmp4, tmp5);
-        tmp7  = _mm512_mul_pd(e32_real_v, el2_imag);
-        tmp8  = _mm512_mul_pd(e32_imag_v, el2_real);
-        tmp9  = _mm512_mul_pd(e33_real_v, el3_imag);
-        tmp10 = _mm512_mul_pd(e33_imag_v, el3_real);
-        tmp11 = _mm512_add_pd(tmp7,  tmp8);
-        tmp12 = _mm512_add_pd(tmp9,  tmp10);
-        tmp13 = _mm512_add_pd(tmp11, tmp12);
-        tmp14 = _mm512_add_pd(tmp6, tmp13);
-        _mm512_i32scatter_pd(dm_imag, pos3, tmp14, 8);
+        v0 = _mm512_mul_pd(e30_real_v, el0_imag);
+        v1 = _mm512_mul_pd(e30_imag_v, el0_real);
+        v2 = _mm512_mul_pd(e31_real_v, el1_imag);
+        v3 = _mm512_mul_pd(e31_imag_v, el1_real);
+        v4 = _mm512_add_pd(v0, v1);
+        v5 = _mm512_add_pd(v2, v3);
+        v6 = _mm512_add_pd(v4, v5);
+        v7  = _mm512_mul_pd(e32_real_v, el2_imag);
+        v8  = _mm512_mul_pd(e32_imag_v, el2_real);
+        v9  = _mm512_mul_pd(e33_real_v, el3_imag);
+        v10 = _mm512_mul_pd(e33_imag_v, el3_real);
+        v11 = _mm512_add_pd(v7,  v8);
+        v12 = _mm512_add_pd(v9,  v10);
+        v13 = _mm512_add_pd(v11, v12);
+        v14 = _mm512_add_pd(v6, v13);
+        _mm512_i32scatter_pd(dm_imag, pos3, v14, 8);
     }
 }
 
