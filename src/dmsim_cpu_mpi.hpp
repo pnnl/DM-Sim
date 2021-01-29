@@ -528,7 +528,7 @@ public:
     }
     // =============================== Standard Gates ===================================
     //3-parameter 2-pulse single qubit gate
-    static Gate* U3(IdxType m, ValType theta, ValType phi, ValType lambda)
+    static Gate* U3(ValType theta, ValType phi, ValType lambda, IdxType m)
     {
         return new Gate(OP::U3, m, 0, 0, 0, 0, theta, phi, lambda);
     }
@@ -2278,11 +2278,18 @@ void ID_GATE(const Simulation* sim, ValType* dm_real,
 void U1_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
         const ValType lambda, const IdxType qubit)
 {
-    ValType e0_real = cos(-lambda/2.0);
-    ValType e0_imag = sin(-lambda/2.0);
-    ValType e3_real = cos(lambda/2.0);
-    ValType e3_imag = sin(lambda/2.0);
-    D_GATE(sim, dm_real, dm_imag, e0_real, e0_imag, e3_real, e3_imag, qubit);
+    ValType e3_real = cos(lambda);
+    ValType e3_imag = sin(lambda);
+    OP_HEAD;
+    const ValType el0_real = dm_real[pos0]; 
+    const ValType el0_imag = dm_imag[pos0];
+    const ValType el1_real = dm_real[pos1]; 
+    const ValType el1_imag = dm_imag[pos1];
+    dm_real[pos0] = el0_real;
+    dm_imag[pos0] = el0_imag;
+    dm_real[pos1] = (e3_real * el1_real) - (e3_imag * el1_imag);
+    dm_imag[pos1] = (e3_real * el1_imag) + (e3_imag * el1_real);
+    OP_TAIL;
 }
 
 //============== U2 Gate ================
@@ -2290,14 +2297,14 @@ void U1_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
 void U2_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
         const ValType phi, const ValType lambda, const IdxType qubit)
 {
-    ValType e0_real = S2I * cos((-phi-lambda)/2.0);
-    ValType e0_imag = S2I * sin((-phi-lambda)/2.0);
-    ValType e1_real = -S2I * cos((-phi+lambda)/2.0);
-    ValType e1_imag = -S2I * sin((-phi+lambda)/2.0);
-    ValType e2_real = S2I * cos((phi-lambda)/2.0);
-    ValType e2_imag = S2I * sin((phi-lambda)/2.0);
-    ValType e3_real = S2I * cos((phi+lambda)/2.0);
-    ValType e3_imag = S2I * sin((phi+lambda)/2.0);
+    ValType e0_real = S2I;
+    ValType e0_imag = 0;
+    ValType e1_real = -S2I*cos(lambda);
+    ValType e1_imag = -S2I*sin(lambda);
+    ValType e2_real = S2I*cos(phi);
+    ValType e2_imag = S2I*sin(phi);
+    ValType e3_real = S2I*cos(phi+lambda);
+    ValType e3_imag = S2I*sin(phi+lambda);
     C1_GATE(sim, dm_real, dm_imag, e0_real, e0_imag, e1_real, e1_imag,
             e2_real, e2_imag, e3_real, e3_imag, qubit);
 }
@@ -2308,14 +2315,14 @@ void U3_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
          const ValType theta, const ValType phi, 
          const ValType lambda, const IdxType qubit)
 {
-    ValType e0_real = cos(theta/2.0) * cos((-phi-lambda)/2.0);
-    ValType e0_imag = cos(theta/2.0) * sin((-phi-lambda)/2.0);
-    ValType e1_real = -sin(theta/2.0) * cos((-phi+lambda)/2.0);
-    ValType e1_imag = -sin(theta/2.0) * sin((-phi+lambda)/2.0);
-    ValType e2_real = sin(theta/2.0) * cos((phi-lambda)/2.0);
-    ValType e2_imag = sin(theta/2.0) * sin((phi-lambda)/2.0);
-    ValType e3_real = cos(theta/2.0) * cos((phi+lambda)/2.0);
-    ValType e3_imag = cos(theta/2.0) * sin((phi+lambda)/2.0);
+    ValType e0_real = cos(theta/2.);
+    ValType e0_imag = 0;
+    ValType e1_real = -cos(lambda)*sin(theta/2.);
+    ValType e1_imag = -sin(lambda)*sin(theta/2.);
+    ValType e2_real = cos(phi)*sin(theta/2.);
+    ValType e2_imag = sin(phi)*sin(theta/2.);
+    ValType e3_real = cos(phi+lambda)*cos(theta/2.);
+    ValType e3_imag = sin(phi+lambda)*cos(theta/2.);
     C1_GATE(sim, dm_real, dm_imag, e0_real, e0_imag, e1_real, e1_imag,
             e2_real, e2_imag, e3_real, e3_imag, qubit);
 }
