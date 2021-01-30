@@ -378,12 +378,13 @@ public:
         MPI_Alltoall(dm_imag_buf, m_cpu*m_cpu, MPI_DOUBLE,
                 dm_imag, m_cpu*m_cpu, MPI_DOUBLE, MPI_COMM_WORLD);
 
-        comm_timer.stop_timer();
         MPI_Barrier(MPI_COMM_WORLD);
+        comm_timer.stop_timer();
 
         //Backward Pass
         isforward = false;
         simulation_kernel(sim_cpu, isforward);
+
         sim_timer.stop_timer();
 
         double sim_time = sim_timer.measure();

@@ -400,8 +400,8 @@ public:
         MPI_Alltoall(dm_imag_buf, m_gpu*m_gpu, MPI_DOUBLE,
                 dm_imag, m_gpu*m_gpu, MPI_DOUBLE, MPI_COMM_WORLD);
 
-        comm_timer.stop_timer();
         MPI_Barrier(MPI_COMM_WORLD);
+        comm_timer.stop_timer();
 
         //Backward Pass
         isforward = false;

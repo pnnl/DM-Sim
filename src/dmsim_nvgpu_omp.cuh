@@ -445,8 +445,8 @@ public:
             //Backward Pass
             isforward = false;
             cudaLaunchCooperativeKernel((void*)simulation_kernel,gridDim,THREADS_PER_BLOCK,args,0);
-            sim_timer.stop_timer();
             cudaSafeCall(cudaDeviceSynchronize());
+            sim_timer.stop_timer();
             sim_times[d] = sim_timer.measure();
             comm_times[d] = comm_timer.measure();
             #pragma omp barrier

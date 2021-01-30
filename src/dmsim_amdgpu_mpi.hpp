@@ -462,9 +462,8 @@ public:
                 dm_imag, m_gpu*m_gpu, MPI_DOUBLE, MPI_COMM_WORLD);
 
 #endif
-
-        comm_timer.stop_timer();
         MPI_Barrier(MPI_COMM_WORLD);
+        comm_timer.stop_timer();
 
         //Backward Pass
         isforward = false;
