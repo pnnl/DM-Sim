@@ -1390,6 +1390,27 @@ void W_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag, const Idx
     OP_TAIL;
 }
 
+//============== U1 Gate ================
+//1-parameter 0-pulse single qubit gate
+void U1_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+        const ValType lambda, const IdxType qubit)
+{
+    ValType e3_real = cos(lambda);
+    ValType e3_imag = sin(lambda);
+    OP_HEAD;
+    const ValType el0_real = dm_real[pos0]; 
+    const ValType el0_imag = dm_imag[pos0];
+    const ValType el1_real = dm_real[pos1]; 
+    const ValType el1_imag = dm_imag[pos1];
+    dm_real[pos0] = el0_real;
+    dm_imag[pos0] = el0_imag;
+    dm_real[pos1] = (e3_real * el1_real) - (e3_imag * el1_imag);
+    dm_imag[pos1] = (e3_real * el1_imag) + (e3_imag * el1_real);
+    OP_TAIL;
+}
+
+
+
 #else //With AVX512 Acceleration
 
 //Define MG-BSP machine operation header (AVX512 Optimized version)
@@ -2267,6 +2288,43 @@ void RY_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
     OP_TAIL;
 }
 
+//============== U1 Gate ================
+//1-parameter 0-pulse single qubit gate
+void U1_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
+        const ValType lambda, const IdxType qubit)
+{
+    const __m512d e3_real = _mm512_set1_pd(cos(lambda));
+    const __m512d e3_imag = _mm512_set1_pd(sin(lambda));
+
+    OP_HEAD;
+
+    const __m512d el0_real = _mm512_i32gather_pd(pos0, dm_real, 8);
+    const __m512d el0_imag = _mm512_i32gather_pd(pos0, dm_imag, 8);
+    const __m512d el1_real = _mm512_i32gather_pd(pos1, dm_real, 8);
+    const __m512d el1_imag = _mm512_i32gather_pd(pos1, dm_imag, 8);
+    __m512d tmp0, tmp1, tmp2;
+
+    //dm_real[pos0] = el0_real;
+    _mm512_i32scatter_pd(dm_real, pos0, el0_real, 8);
+    //dm_imag[pos0] = el0_imag;
+    _mm512_i32scatter_pd(dm_imag, pos0, el0_imag, 8);
+
+    // dm_real[pos1] = (e3_real * el1_real) - (e3_imag * el1_imag);
+    tmp0 = _mm512_mul_pd(e3_real, el1_real);
+    tmp1 = _mm512_mul_pd(e3_imag, el1_imag);
+    tmp2 = _mm512_sub_pd(tmp0, tmp1);
+    _mm512_i32scatter_pd(dm_real, pos1, tmp2, 8);
+
+    // dm_imag[pos1] = (e3_real * el1_imag) + (e3_imag * el1_real);
+    tmp0 = _mm512_mul_pd(e3_real, el1_imag);
+    tmp1 = _mm512_mul_pd(e3_imag, el1_real);
+    tmp2 = _mm512_add_pd(tmp0, tmp1);
+    _mm512_i32scatter_pd(dm_imag, pos1, tmp2, 8);
+
+    OP_TAIL;
+}
+
+
 //============== W Gate ================
 //W gate: e^(-i*pi/4*X)
 /** W = [s2i    -s2i*i]
@@ -2319,25 +2377,6 @@ void ID_GATE(const Simulation* sim, ValType* dm_real,
         ValType* dm_imag, const IdxType qubit)
 {
     return;
-}
-
-//============== U1 Gate ================
-//1-parameter 0-pulse single qubit gate
-void U1_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
-        const ValType lambda, const IdxType qubit)
-{
-    ValType e3_real = cos(lambda);
-    ValType e3_imag = sin(lambda);
-    OP_HEAD;
-    const ValType el0_real = dm_real[pos0]; 
-    const ValType el0_imag = dm_imag[pos0];
-    const ValType el1_real = dm_real[pos1]; 
-    const ValType el1_imag = dm_imag[pos1];
-    dm_real[pos0] = el0_real;
-    dm_imag[pos0] = el0_imag;
-    dm_real[pos1] = (e3_real * el1_real) - (e3_imag * el1_imag);
-    dm_imag[pos1] = (e3_real * el1_imag) + (e3_imag * el1_real);
-    OP_TAIL;
 }
 
 //============== U2 Gate ================
