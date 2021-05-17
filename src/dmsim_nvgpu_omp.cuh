@@ -582,12 +582,12 @@ public:
         return new Gate(OP::U3, m, 0, 0, 0, 0, theta, phi, lambda);
     }
     //2-parameter 1-pulse single qubit gate
-    static Gate* U2(IdxType m, ValType phi, ValType lambda)
+    static Gate* U2(ValType phi, ValType lambda, IdxType m)
     {
         return new Gate(OP::U2, m, 0, 0, 0, 0, 0., phi, lambda);
     }
     //1-parameter 0-pulse single qubit gate
-    static Gate* U1(IdxType m, ValType lambda)
+    static Gate* U1(ValType lambda, IdxType m)
     {
         return new Gate(OP::U1, m, 0, 0, 0, 0, 0., 0., lambda);
     }
