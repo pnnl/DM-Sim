@@ -54,9 +54,17 @@ def VQE(initial_var_params):
  
     opt_result = minimize(run_program,
                           initial_var_params,
-                          method="COBYLA",
-                          tol=0.000001,
-                          options={'disp': True, 'maxiter': 200,'rhobeg' : 0.05})
+                          method="nelder-mead",
+                          options={
+                              'maxiter': 50,
+                              'maxfev': None,
+                              'disp': False,
+                              'return_all': False,
+                              'initial_simplex': None,
+                              'xatol': 0.001,
+                              'fatol': 0.01,
+                              'adaptive': False
+                          })
  
     return opt_result
  
