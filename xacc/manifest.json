@@ -1,0 +1,6 @@
+{
+  "bundle.symbolic_name" : "xacc_dm_sim",
+  "bundle.activator" : true,
+  "bundle.name" : "XACC DM-Sim Simulation Accelerator",
+  "bundle.description" : "This bundle provides a DM-Sim Accelerator for Gate Model QC."
+}

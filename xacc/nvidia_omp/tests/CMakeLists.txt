@@ -1,0 +1,6 @@
+add_xacc_test(DmSimAccelerator)
+target_link_libraries(DmSimAcceleratorTester xacc xacc-quantum-gate)
+
+add_xacc_test(DmSimAcceleratorMultipleGpus)
+target_link_libraries(DmSimAcceleratorMultipleGpusTester xacc xacc-quantum-gate)
+target_compile_definitions(DmSimAcceleratorMultipleGpusTester PRIVATE QASM_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources")
