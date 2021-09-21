@@ -1,6 +1,8 @@
 cmake_minimum_required (VERSION 3.13)
 
 project (xacc-dm-sim LANGUAGES C CXX)
+SET(CMAKE_C_COMPILER "gcc")
+SET(CMAKE_CXX_COMPILER "g++")
 enable_testing()
 
 set (CMAKE_STANDARD_REQUIRED ON)
