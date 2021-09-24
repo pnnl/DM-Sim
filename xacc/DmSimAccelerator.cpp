@@ -2,6 +2,7 @@
 #include "DmSimApi.hpp"
 #include "AllGateVisitor.hpp"
 #include "xacc_plugin.hpp"
+#include <thread>
 namespace xacc {
 namespace quantum {
 class DmSimCircuitVisitor : public AllGateVisitor {
@@ -120,25 +121,63 @@ private:
 };
 
 void DmSimAccelerator::initialize(const HeterogeneousMap &params) {
-  m_ngpus = 1;
-  if (params.keyExists<int>("gpus")) {
-    m_ngpus = params.get<int>("gpus");
+#ifdef XACC_HAS_CUDA
+  m_backend = "gpu";
+#else
+  m_backend = "cpu";
+#endif
+  if (params.stringExists("backend")) {
+    m_backend = params.getString("backend");
   }
+  m_processingUnits = 1;
+  if (m_backend == "gpu") {
+    if (params.keyExists<int>("gpus")) {
+      m_processingUnits = params.get<int>("gpus");
+    }
+  }
+  if (m_backend == "cpu") {
+    // Default is to use all threads
+    const auto getNearestPowerOf2 = [](int num) {
+      int result = 1;
+      while (result <= num) {
+        result *= 2;
+      }
+      return result;
+    };
+    const auto num_threads = std::thread::hardware_concurrency() != 0
+                                 ? std::thread::hardware_concurrency()
+                                 : 1;
+    m_processingUnits = getNearestPowerOf2(num_threads);
+    if (params.keyExists<int>("threads")) {
+      m_processingUnits = params.get<int>("threads");
+    }
+  }
+
   m_shots = 1024;
   if (params.keyExists<int>("shots")) {
     m_shots = params.get<int>("shots");
   }
 }
 
+std::shared_ptr<DmSim::DmSimBackend> DmSimAccelerator::get_backend() {
+  if (m_backend == "gpu") {
+    auto ptr = DmSim::getGpuDmSim();
+    assert(ptr);
+    return ptr;
+  }
+  return DmSim::getCpuDmSim();
+}
+
 void DmSimAccelerator::execute(
     std::shared_ptr<AcceleratorBuffer> buffer,
     const std::shared_ptr<CompositeInstruction> compositeInstruction) {
-  auto dm_sim = DmSim::getGpuDmSim();
+  auto dm_sim = get_backend();
   if (!dm_sim) {
     xacc::error("DM-Sim was not installed. Please make sure that you're "
                 "compiling XACC on a platform with CUDA.");
   }
-  dm_sim->init(buffer->size(), m_ngpus);
+  dm_sim->init(buffer->size(),
+               std::min(m_processingUnits, 1 << buffer->size()));
   DmSimCircuitVisitor visitor(dm_sim.get());
   // Walk the IR tree, and visit each node
   InstructionIterator it(compositeInstruction);

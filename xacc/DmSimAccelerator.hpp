@@ -1,6 +1,9 @@
 #pragma one
 #include "xacc.hpp"
-
+namespace DmSim {
+// Forward declare
+class DmSimBackend;
+} // namespace DmSim
 namespace xacc {
 namespace quantum {
 class DmSimAccelerator : public Accelerator {
@@ -28,8 +31,10 @@ public:
                            compositeInstructions) override;
 
 private:
-  int m_ngpus;
+  std::shared_ptr<DmSim::DmSimBackend> get_backend();
+  int m_processingUnits;
   int m_shots;
+  std::string m_backend;
 };
 } // namespace quantum
 } // namespace xacc

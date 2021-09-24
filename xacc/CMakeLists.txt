@@ -29,7 +29,7 @@ add_library(${LIBRARY_NAME} SHARED ${SRC})
 target_include_directories(${LIBRARY_NAME}
                              PUBLIC .)
 target_link_libraries(${LIBRARY_NAME}
-                        PUBLIC xacc::xacc xacc::quantum_gate
+                        PUBLIC xacc::xacc xacc::quantum_gate xacc-dm-sim-cpu-omp
                       )
 
 set(_bundle_name xacc_dm_sim)
@@ -57,7 +57,7 @@ else()
   set_target_properties(${LIBRARY_NAME} PROPERTIES LINK_FLAGS "-shared")
 endif()
 
-install(TARGETS ${LIBRARY_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX})
+install(TARGETS ${LIBRARY_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/plugins)
 
 find_package (CUDA)
 if (CUDA_FOUND)
@@ -66,3 +66,7 @@ if (CUDA_FOUND)
   add_subdirectory(nvidia_omp)
   target_link_libraries(${LIBRARY_NAME} PRIVATE xacc-dm-sim-nvidia-omp)
 endif (CUDA_FOUND)
+add_subdirectory(cpu_omp)
+if(XACC_BUILD_TESTS)
+    add_subdirectory(tests)
+endif()

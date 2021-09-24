@@ -60,4 +60,5 @@ extern std::shared_ptr<DmSimBackend> getGpuDmSim();
 #else
 inline std::shared_ptr<DmSimBackend> getGpuDmSim() { return nullptr;}
 #endif
+extern std::shared_ptr<DmSimBackend> getCpuDmSim();
 } // namespace DmSim
