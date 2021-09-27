@@ -20,6 +20,7 @@ printf \"__qpu__ void test_circ(qreg q) {\n \
 int main() {\n \
   auto q = qalloc(5);\n \
   test_circ(q);\n \
+  q.print();\n \
   return 0;\n \
 }\" | qcor -qpu dm-sim -x c++ - ; ./a.out \n \
 "
