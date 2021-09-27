@@ -1,0 +1,7 @@
+FIND_PACKAGE(OpenMP REQUIRED)
+SET(LIBRARY_NAME xacc-dm-sim-cpu-omp)
+FILE(GLOB SRC *.cpp)
+add_library(${LIBRARY_NAME} SHARED ${SRC})
+include_directories(${CMAKE_SOURCE_DIR}/xacc/utils .. ../..)
+TARGET_LINK_LIBRARIES(${LIBRARY_NAME} OpenMP::OpenMP_CXX)
+install(TARGETS ${LIBRARY_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)

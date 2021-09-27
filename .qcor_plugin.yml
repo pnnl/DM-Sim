@@ -1,0 +1,26 @@
+# No dependencies (on Summit, we cannot install with sudo)
+
+
+configure:
+  # If top-level cmake is not at root of plugin repo, 
+  # provide relative path
+  source_dir: 'xacc'
+  # e.g. if plugin needed mpi
+  # mpi:
+  #  - MPI_CXX_EXECUTABLE=/path/to/mpicxx
+  # will add -DMPI_CXX_EXECUTABLE=/path/to/mpicxx to cmake call
+
+example: "
+printf \"__qpu__ void test_circ(qreg q) {\n \
+   H(q[0]);\n \
+   CX(q[0], q[1]);\n \
+   CX(q[0], q[4]);\n \
+   Measure(q);\n \
+}\n \
+int main() {\n \
+  auto q = qalloc(5);\n \
+  test_circ(q);\n \
+  q.print();\n \
+  return 0;\n \
+}\" | qcor -qpu dm-sim -x c++ - ; ./a.out \n \
+"
