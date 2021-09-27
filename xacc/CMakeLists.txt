@@ -57,6 +57,7 @@ else()
   set_target_properties(${LIBRARY_NAME} PROPERTIES LINK_FLAGS "-shared")
 endif()
 
+set (CMAKE_INSTALL_PREFIX "${XACC_DIR}" CACHE PATH "default install path" FORCE)
 install(TARGETS ${LIBRARY_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/plugins)
 
 find_package (CUDA)

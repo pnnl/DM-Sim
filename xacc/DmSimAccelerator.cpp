@@ -3,6 +3,7 @@
 #include "AllGateVisitor.hpp"
 #include "xacc_plugin.hpp"
 #include <thread>
+#include <cassert>
 namespace xacc {
 namespace quantum {
 class DmSimCircuitVisitor : public AllGateVisitor {
