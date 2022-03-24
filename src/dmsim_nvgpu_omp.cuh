@@ -1542,7 +1542,7 @@ __device__ __inline__ void CRZ_GATE(const Simulation* sim, ValType* dm_real, Val
 __device__ __inline__ void CU1_GATE(const Simulation* sim, ValType* dm_real, ValType* dm_imag,
         const ValType lambda, const IdxType a, const IdxType b)
 {
-    U1_GATE(sim, dm_real, dm_imag, lambda/2, b);
+    U1_GATE(sim, dm_real, dm_imag, lambda/2, a);
     CX_GATE(sim, dm_real, dm_imag, a, b);
     U1_GATE(sim, dm_real, dm_imag, -lambda/2, b);
     CX_GATE(sim, dm_real, dm_imag, a, b);
@@ -1558,6 +1558,7 @@ __device__ __inline__ void CU3_GATE(const Simulation* sim, ValType* dm_real, Val
     ValType temp1 = (lambda-phi)/2;
     ValType temp2 = theta/2;
     ValType temp3 = -(phi+lambda)/2;
+    U1_GATE(sim, dm_real, dm_imag, -temp3, c);
     U1_GATE(sim, dm_real, dm_imag, temp1, t);
     CX_GATE(sim, dm_real, dm_imag, c, t);
     U3_GATE(sim, dm_real, dm_imag, -temp2, 0, temp3, t);
