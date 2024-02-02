@@ -1,4 +1,4 @@
-# DM-Sim: Density Matrix Quantum Circuit Simulation Environment
+# DM-Sim: Density Matrix Quantum Circuit Simulation Environment (Merged in [NWQSim](https://github.com/pnnl/nwq-sim))
 
 A Density Matrix Quantum Simulation Environment for Single-GPU/CPU, Single-Node-Multi-GPUs/CPUs and Multi-Nodes GPU/CPU Cluster. It supports Intel/AMD/IBM CPUs, NVIDIA/AMD GPUs. 
 
